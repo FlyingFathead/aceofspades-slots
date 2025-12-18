@@ -51,7 +51,8 @@
       --highlight: #b30000;
       --gold: #ffd700;
       --ink: #111;
-      --logo-spade-y: -40%;      
+      --logo-spade-y: -40%;  
+      --reel-emoji-nudge: 0.06em;          
     }
 
     /* Twemoji: treat it as a pure box, no baseline math */
@@ -61,16 +62,34 @@
       height: 100%;
     }
 
-    /* Reels: center the symbol box perfectly */
-    .reel{
-      line-height: 1;          /* important: removes font ascender/descender bias */
-    }
-
+    /* Make the reel symbol a strict 1em x 1em box */
     .reel .sym{
+      width: 1em;
+      height: 1em;
+      flex: 0 0 1em;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      height: 1em;             /* anchor box height */
+      line-height: 1;
+      transform: translateY(var(--reel-emoji-nudge));
+    }
+
+    /* This is the important part: beat Twemoji inline styles */
+    .reel .sym img.emoji{
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+
+      /* kill Twemoji’s default spacing + baseline offset */
+      margin: 0 !important;
+      vertical-align: 0 !important;
+    }
+
+    /* Tap/click the reel itself to toggle lock (mobile-friendly hit target) */
+    .reel.tap-lock{
+      cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
     }
 
     /* If you want it *pixel-perfect* across engines, you can micro-nudge: */
@@ -943,21 +962,73 @@
     #spin-btn{ grid-area: spin; justify-self: center; }
     .bet-controls{ grid-area: bet; justify-self: end; }
 
-    /* MOBILE: bet goes under spin */
+    /* MOBILE: SPIN on top, then 50/50 left(readouts) + right(bet) */
     @media (max-width: 560px){
       .ui-panel{
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
         grid-template-areas:
-          "left"
-          "spin"
-          "bet";
-        gap: 12px;
+          "spin spin"
+          "left bet";
+        align-items: start;
+        gap: 10px 12px;
       }
-      .bet-controls{
+
+      #spin-btn{
         justify-self: center;
+        align-self: start;
+        margin-top: -6px; /* keep your current "ok" SPIN height */
+      }
+
+      .readout-stack{
+        justify-self: stretch;
+        align-items: flex-start;
+        text-align: left;
+      }
+
+      .bet-controls{
+        justify-self: stretch;
+        width: 100%;
+        justify-content: flex-end;
+        gap: 6px;
+      }
+
+      .bet-controls .readout{
+        font-size: 1.05rem; /* optional: keeps BET line from feeling huge */
+      }
+    }
+
+    /* 1) stop grid children from refusing to shrink */
+    .ui-panel > * { min-width: 0; }
+    .bet-controls, .bet-controls * { min-width: 0; }
+
+    /* MOBILE: BET on its own row, +/- underneath */
+    @media (max-width: 560px){
+      .bet-controls{
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "read read"
+          "down up";
+        gap: 6px 10px;
+
+        width: 100%;
+        max-width: 100%;
+        overflow: hidden;
+        align-items: center;
+        justify-items: center;
+      }
+
+      .bet-controls .readout{
+        grid-area: read;
         width: 100%;
         justify-content: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
+
+      #bet-down{ grid-area: down; }
+      #bet-up  { grid-area: up; }
     }
 
     .readout {
@@ -1556,7 +1627,7 @@
 
   /* if you also meant the wrapped meta line spacing */
   .meta-rotator .meta-line{
-    line-height: 0.50;            /* tighter than 1.15 */
+    line-height: 1.00;            /* tighter than 1.15 */
   }
 
   </style>
@@ -1869,6 +1940,37 @@
     const reelEls = [els.r1, els.r2, els.r3];
     const lockBtns = [els.lock1, els.lock2, els.lock3];
 
+    // Tap/click reels to toggle locks (mobile UX: big hit target)
+    (function wireReelTaps(){
+      reelEls.forEach((el, i) => {
+        // optional but nice for accessibility
+        el.setAttribute("role", "button");
+        el.setAttribute("tabindex", "0");
+        el.setAttribute("aria-label", `Toggle lock on reel ${i + 1}`);
+
+        // Prevent double-fire when a browser sends both pointer + click
+        let lastPtr = 0;
+
+        el.addEventListener("pointerup", (e) => {
+          if (e.button != null && e.button !== 0) return; // ignore non-left mouse
+          lastPtr = performance.now();
+          toggleLock(i);
+        }, { passive: true });
+
+        el.addEventListener("click", () => {
+          if (performance.now() - lastPtr < 350) return;
+          toggleLock(i);
+        }, { passive: true });
+
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            toggleLock(i);
+          }
+        });
+      });
+    })();
+
     // --- Unified emoji rendering (Twemoji SVG) ---
     const EMOJI_CACHE = new Map();
     function emojiHTML(ch){
@@ -1987,6 +2089,8 @@
 
         lockBtns[i].classList.toggle('pulse', canUseLocks && canLock);
         reelEls[i].classList.toggle('pulse', canUseLocks && canLock);
+
+        reelEls[i].classList.toggle("tap-lock", canUseLocks);
       }
 
       if (els.winsRow && els.wins) {
