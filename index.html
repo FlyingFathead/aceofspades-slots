@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ACE OF SPADES WEB SLOTS</title>
   <!-- Primary Info -->
-  <link rel="canonical" href="https://github.com/FlyingFathead/aceofspades-slots/" />
+  <link rel="canonical" href="https://flyingfathead.github.io/aceofspades-slots/" />
   <meta name="description" content="Ace of Spades Slots (a tribute to Lemmy): in-browser slots with reel locks (x2 per lock), double-stakes, jackpots, and chiptune riffs. Born to Lose, Spin to Win." />
 
   <!-- Open Graph (Discord, Facebook, Slack, etc.) -->
@@ -13,8 +13,8 @@
   <meta property="og:site_name" content="Ace of Spades Slots" />
   <meta property="og:title" content="Ace of Spades Slots" />
   <meta property="og:description" content="Neon browser slots with reel locks (x2 per lock), double-stakes, jackpots, and chiptune riffs. Born to Lose, Spin to Win." />
-  <meta property="og:url" content="https://github.com/FlyingFathead/aceofspades-slots/" />
-  <meta property="og:image" content="https://github.com/FlyingFathead/aceofspades-slots/og.png" />
+  <meta property="og:url" content="https://flyingfathead.github.io/aceofspades-slots/" />
+  <meta property="og:image" content="https://flyingfathead.github.io/aceofspades-slots/og.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="Ace of Spades Slots: a web browser-based virtual slot machine with reels and a Vegas-style glow." />
@@ -24,22 +24,25 @@
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Ace of Spades Slots" />
   <meta name="twitter:description" content="Lock up to two reels, double your bet, chase jackpots -- and let the spade lights strobe." />
-  <meta name="twitter:image" content="https://github.com/FlyingFathead/aceofspades-slots/og.png" />
+  <meta name="twitter:image" content="https://flyingfathead.github.io/aceofspades-slots/og.png" />
   <meta name="twitter:image:alt" content="Ace of Spades Slots: a web browser-based virtual slot machine with spade reels and a Vegas-style glow." />
 
   <!-- Nice-to-haves -->
   <meta name="theme-color" content="#050505" />
   <meta name="color-scheme" content="dark" />
   <meta name="application-name" content="Ace of Spades Slots" />
-  <link rel="icon" href="/favicon.ico" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <link rel="manifest" href="/site.webmanifest" /> 
+  <link rel="icon" href="favicon.ico" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="manifest" href="site.webmanifest" />
   <link href="https://fonts.googleapis.com/css2?family=Metal+Mania&family=Rye&display=swap" rel="stylesheet" />
+  <meta property="og:image:type" content="image/png" />
 
   <script>
     document.documentElement.classList.remove("no-js");
     document.documentElement.classList.add("js");
   </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js" crossorigin="anonymous"></script>
 
   <style>
     :root {
@@ -49,6 +52,13 @@
       --gold: #ffd700;
       --ink: #111;
       --logo-spade-y: -40%;      
+    }
+
+    /* Twemoji images: behave like font emoji */
+    img.emoji{
+      width: 1em;
+      height: 1em;
+      vertical-align: -0.12em;
     }
 
     body {
@@ -1515,6 +1525,26 @@
     const reelEls = [els.r1, els.r2, els.r3];
     const lockBtns = [els.lock1, els.lock2, els.lock3];
 
+    // --- Unified emoji rendering (Twemoji SVG) ---
+    const EMOJI_CACHE = new Map();
+    function emojiHTML(ch){
+      if (!window.twemoji) return ch; // fallback
+      if (!EMOJI_CACHE.has(ch)){
+        EMOJI_CACHE.set(ch, twemoji.parse(ch, { folder: "svg", ext: ".svg" }));
+      }
+      return EMOJI_CACHE.get(ch);
+    }
+
+    function setReelSymbol(i, ch){
+      // Preserve your lock pill, but render the symbol as Twemoji SVG.
+      reelEls[i].dataset.sym = ch;
+      reelEls[i].innerHTML = `${emojiHTML(ch)}<span class="lock-pill">LOCKED</span>`;
+    }
+
+    function getReelSymbol(i){
+      return reelEls[i].dataset.sym || "♠️";
+    }
+
     function randSymbol() {
       return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
     }
@@ -2098,7 +2128,7 @@
     function startReelCycle(i) {
       if (cycleTimers[i]) clearInterval(cycleTimers[i]);
       cycleTimers[i] = setInterval(() => {
-        reelEls[i].firstChild.textContent = randSymbol();
+        setReelSymbol(i, randSymbol());
       }, 70);
     }
     function stopReelCycle(i) {
@@ -2205,7 +2235,7 @@
       function stopVisual(i) {
         stopReelCycle(i);
         reelEls[i].classList.remove("blur-spin");
-        reelEls[i].firstChild.textContent = res[i];
+        setReelSymbol(i, res[i]);
       }
 
       function stopTone(stage, idx) {
@@ -2508,15 +2538,12 @@
     }, { passive: false });
 
     // Init reels (ensure firstChild is the symbol text node)
-    function normalizeReels() {
-      for (const r of reelEls) {
-        // Ensure the symbol is a text node at firstChild
-        // (HTML has "♠️" followed by <span>, so firstChild is the text node)
-        if (!r.firstChild || r.firstChild.nodeType !== Node.TEXT_NODE) {
-          r.insertBefore(document.createTextNode('♠️'), r.firstChild);
-        }
+    function normalizeReels(){
+      // Force initial rendered state via Twemoji and sync "current"
+      for (let i = 0; i < 3; i++){
+        setReelSymbol(i, getReelSymbol(i));
       }
-      current = [reelEls[0].firstChild.textContent.trim(), reelEls[1].firstChild.textContent.trim(), reelEls[2].firstChild.textContent.trim()];
+      current = [getReelSymbol(0), getReelSymbol(1), getReelSymbol(2)];
     }
 
     function buildTitleMarquee() {
@@ -2544,6 +2571,12 @@
     normalizeReels();
     buildTitleMarquee();
     updateUI();
+
+    // Convert static emoji (payout table, buttons, etc.) once
+    if (window.twemoji){
+      twemoji.parse(document.body, { folder: "svg", ext: ".svg" });
+    }
+
   </script>
 </body>
 </html>
