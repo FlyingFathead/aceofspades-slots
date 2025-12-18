@@ -510,9 +510,45 @@
     #message{ min-height: 0; line-height: 1.05; }
     .meta{ margin-top: 2px; line-height: 1.15; }
 
+    /* Meta line rotator: keeps header height fixed, avoids the bottom marquee strip */
+    .meta-rotator{
+      position: relative;
+      height: 1.15em;         /* exactly one line tall */
+      margin-top: 4px;
+      overflow: hidden;
+    }
+
+    .meta-rotator .meta-line{
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      opacity: 0;
+      transform: translateY(2px);
+      will-change: opacity, transform;
+      pointer-events: none;
+
+      animation: metaCycle 4.4s ease-in-out infinite;
+    }
+
+    .meta-rotator .meta-line:nth-child(2){
+      animation-delay: 2.2s;  /* half of 4.4s */
+    }
+
+    @keyframes metaCycle{
+      0%   { opacity: 0; transform: translateY(2px); }
+      10%  { opacity: 1; transform: translateY(0); }
+      42%  { opacity: 1; transform: translateY(0); }
+      55%  { opacity: 0; transform: translateY(-2px); }
+      100% { opacity: 0; transform: translateY(-2px); }
+    }
+
     .machine-header{
       margin: 8px 0 12px;
-      padding: 10px 12px 8px;
+      /* padding: 10px 12px 8px; */
+      padding: 16px 12px 14px;
       background: linear-gradient(180deg, rgba(24,24,24,0.98), rgba(8,8,8,0.98));
       border: 2px solid rgba(255,215,0,0.28);
       border-radius: 12px;
@@ -1055,6 +1091,30 @@
       will-change: text-shadow, filter;
     }
 
+    /* IDLE message pulse (only when it's NOT one of the special animated states) */
+    body:not(.is-spinning) #message:not(.double-stakes):not(.another-spin){
+      animation: idleMessagePulse 1.25s ease-in-out infinite;
+      will-change: text-shadow, filter;
+    }
+
+    @keyframes idleMessagePulse{
+      0%, 100%{
+        text-shadow:
+          0 0 8px rgba(255,255,255,0.20),
+          0 0 18px rgba(255,215,0,0.10),
+          0 0 2px rgba(0,0,0,0.85);
+        filter: drop-shadow(0 0 4px rgba(255,215,0,0.10));
+      }
+      50%{
+        text-shadow:
+          0 0 12px rgba(255,255,255,0.38),
+          0 0 26px rgba(255,215,0,0.22),
+          0 0 2px rgba(0,0,0,0.90);
+        filter: drop-shadow(0 0 10px rgba(255,215,0,0.18));
+      }
+    }
+
+
     @keyframes stakesTextGlow{
       0%, 100%{
         text-shadow:
@@ -1421,6 +1481,60 @@
     }
   }
 
+  /* --- MAKE THE MACHINE HEADER TALLER (and stop text getting "eaten") --- */
+  .machine-header{
+    /* more breathing room above/below the content + room for the A♠ strips */
+    padding: 30px 14px 28px !important;
+    min-height: 52px;
+  }
+
+  /* give the message line more guaranteed vertical room */
+  #message{
+    min-height: 40px;
+    line-height: 1.00;
+  }
+
+  /* your meta rotator is only 1 line tall -- if it wraps, it gets clipped.
+    Make it 2 lines tall so nothing gets chopped. */
+  .meta-rotator{
+    height: 2.35em;     /* ~2 lines */
+    margin-top: 6px;
+  }
+
+  /* keep the meta readable when it wraps */
+  .meta-rotator .meta-line{
+    line-height: 1.15;
+    padding: 0 3px;
+  }
+
+  /* optional: tiny extra inset so the strips don't feel like they're touching text */
+  .machine-header::before{ top: 8px; }
+  .machine-header::after { bottom: 8px; }
+
+  /* small screens: don't make it ridiculously tall */
+  @media (max-width: 560px){
+    .machine-header{
+      padding: 26px 12px 24px !important;
+      min-height: 122px;
+    }
+  }
+
+  /* tighten spacing between MESSAGE and META */
+  .machine-header .meta.meta-rotator{
+    margin-top: 2px !important;   /* was 4+6 combined -> too much */
+  }
+
+  /* optionally reduce message reserve height a bit */
+  .machine-header #message{
+    min-height: 34px;             /* was 40px */
+    line-height: 1.0;
+  }
+
+  /* if you also meant the wrapped meta line spacing */
+  .meta-rotator .meta-line{
+    line-height: 0.50;            /* tighter than 1.15 */
+  }
+
   </style>
 </head>
 <body>
@@ -1470,7 +1584,15 @@
       </div>
 
       <div id="message">CLICK SPIN TO START</div>
-      <div class="meta">LOCKS DOUBLE YOUR BET (x2 PER LOCK)<br>MAX 2 LOCKS | TOTAL: <span id="totalbet">10</span> (x<span id="mult">1</span>)</div>
+
+      <div class="meta meta-rotator" aria-label="Bet info">
+        <div class="meta-line">LOCKS DOUBLE YOUR BET (x2 PER LOCK)</div>
+
+        <div class="meta-line">
+          MAX 2 LOCKS | TOTAL: <span id="totalbet">10</span> (x<span id="mult">1</span>)
+        </div>
+      </div>
+
     </div>
 
     <div class="reels-container" id="reels-container">
@@ -2581,21 +2703,6 @@
         return "WIN";
       }
 
-      // 3 OF A KIND (any)
-      if (s1 === s2 && s2 === s3) {
-        tripleWinThisSpin = true;
-        const win = cost * PAY.TRIPLE_ANY;
-        credits += win;
-        netWins += win;
-        setMessage(`TRIPLE ${getSymbolName(s1)}! +${win}`, "#fff");
-        flashReels();
-        triggerBigWinEffect(1000);     // <-- add this
-        playWinSound(false);
-        kickSpeakers();
-        updateUI();
-        return "WIN";
-      }
-
       // CIGS (after triple 7s, before triple-any):
       if (s1 === '🚬' && s2 === '🚬' && s3 === '🚬') {
         tripleWinThisSpin = true;
@@ -2605,6 +2712,21 @@
         setMessage(`CHAIN SMOKED! +${win}`, "gold");
         flashReels();
         triggerBigWinEffect(1200);
+        playWinSound(false);
+        kickSpeakers();
+        updateUI();
+        return "WIN";
+      }
+
+      // 3 OF A KIND (any)
+      if (s1 === s2 && s2 === s3) {
+        tripleWinThisSpin = true;
+        const win = cost * PAY.TRIPLE_ANY;
+        credits += win;
+        netWins += win;
+        setMessage(`TRIPLE ${getSymbolName(s1)}! +${win}`, "#fff");
+        flashReels();
+        triggerBigWinEffect(1000);     // <-- add this
         playWinSound(false);
         kickSpeakers();
         updateUI();
