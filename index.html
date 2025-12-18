@@ -1347,7 +1347,17 @@
   <script>
     /* --- CONFIG --- */
     // Aces are rare (1/12 here) so 3x A♠ stays a real event.
-    const SYMBOLS = ['♠️', '💀', '💀', '🎸', '🎸', '🎸', '🥃', '🥃', '🥃', '🎲', '🎲', '7️⃣'];
+    // added 🚬 twice (same weight as 🎲)
+    const SYMBOLS = [
+      '♠️',
+      '💀','💀',
+      '🎸','🎸','🎸',
+      '🥃','🥃','🥃',
+      '🎲','🎲',
+      '🚬','🚬',
+      '7️⃣'
+    ];
+
     const SHOW_WIN_COUNTER = true; // toggle visibility in code
     const BET_MIN = 5;
     const BET_MAX = 250;
@@ -1391,6 +1401,14 @@
 
     // Track current displayed symbols so locks can hold them
     let current = ['♠️', '♠️', '♠️'];
+
+    // emoji loader
+    const TWEMOJI_OPTS = {
+      folder: "svg",
+      ext: ".svg",
+      callback: (icon, options) =>
+        `https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/svg/${icon}${options.ext}`
+    };
 
     /* --- THEME MUSIC ---*/
     const SEQ_THEME = {
@@ -1528,9 +1546,9 @@
     // --- Unified emoji rendering (Twemoji SVG) ---
     const EMOJI_CACHE = new Map();
     function emojiHTML(ch){
-      if (!window.twemoji) return ch; // fallback
+      if (!window.twemoji) return ch;
       if (!EMOJI_CACHE.has(ch)){
-        EMOJI_CACHE.set(ch, twemoji.parse(ch, { folder: "svg", ext: ".svg" }));
+        EMOJI_CACHE.set(ch, twemoji.parse(ch, TWEMOJI_OPTS));
       }
       return EMOJI_CACHE.get(ch);
     }
@@ -2397,6 +2415,21 @@
         return "WIN";
       }
 
+      // CIGS (after triple 7s, before triple-any):
+      if (s1 === '🚬' && s2 === '🚬' && s3 === '🚬') {
+        tripleWinThisSpin = true;
+        const win = cost * 12; // whatever
+        credits += win;
+        netWins += win;
+        setMessage(`CHAIN SMOKED! +${win}`, "gold");
+        flashReels();
+        triggerBigWinEffect(1200);
+        playWinSound(false);
+        kickSpeakers();
+        updateUI();
+        return "WIN";
+      }
+
       // 2 ACES (any position)
       const aceCount = (s1 === '♠️') + (s2 === '♠️') + (s3 === '♠️');
       if (aceCount === 2) {
@@ -2488,6 +2521,7 @@
       if (symbol === '🎸') return "GUITARS";
       if (symbol === '🥃') return "WHISKEY";
       if (symbol === '🎲') return "DICE";
+      if (symbol === '🚬') return "CIGS";
       if (symbol === '7️⃣') return "SEVENS";
       return "MATCH";
     }
@@ -2574,7 +2608,7 @@
 
     // Convert static emoji (payout table, buttons, etc.) once
     if (window.twemoji){
-      twemoji.parse(document.body, { folder: "svg", ext: ".svg" });
+      twemoji.parse(document.body, TWEMOJI_OPTS);
     }
 
   </script>
