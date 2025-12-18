@@ -1630,6 +1630,188 @@
     line-height: 1.00;            /* tighter than 1.15 */
   }
 
+  /* =========================================
+    COMPACT MACHINE HEADER (phones)
+    at END of <style> so it overrides.
+    ========================================= */
+
+  /* Small width (portrait phones etc): stop forcing 122px header */
+  @media (max-width: 560px){
+    .machine-header{
+      padding: 20px 12px 18px !important;
+      min-height: 0 !important;
+      margin: 6px 0 10px;
+    }
+
+    #message{
+      min-height: 28px !important;
+      font-size: 1.10rem;
+    }
+
+    .meta{
+      font-size: 0.78rem;
+    }
+
+    .meta-rotator{
+      height: 2.0em !important; /* enough room if a line wraps */
+      margin-top: 2px !important;
+    }
+
+    .meta-rotator .meta-line{
+      line-height: 1.05;
+    }
+  }
+
+  /* Short height (phone landscape / 16:10-ish): make it properly tight */
+  @media (max-height: 520px) and (orientation: landscape){
+    .machine-header{
+      padding: 16px 12px 14px !important;
+      min-height: 0 !important;
+      margin: 6px 0 8px;
+    }
+
+    #message{
+      min-height: 24px !important;
+      font-size: 1.02rem;
+      letter-spacing: 1px;
+    }
+
+    .meta{
+      font-size: 0.72rem;
+    }
+
+    /* Keep the rotator one-line tall and prevent wrapping -> no extra height */
+    .meta-rotator{
+      height: 1.15em !important;
+      margin-top: 2px !important;
+    }
+
+    .meta-rotator .meta-line{
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      line-height: 1.10;
+      padding: 0 2px;
+    }
+
+    /* Optional: make the marquee strips feel less chunky in tight mode */
+    .machine-header::before{ top: 5px; }
+    .machine-header::after { bottom: 5px; }
+  }
+
+  /* ================================
+    KILL HORIZONTAL SCROLL (mobile)
+    ================================ */
+
+  /* 1) Make width math sane everywhere */
+  *, *::before, *::after { box-sizing: border-box; }
+
+  /* 2) Never allow sideways overflow */
+  html, body { max-width: 100%; overflow-x: hidden; }
+
+  /* 3) Add a small gutter so borders never kiss the screen edge */
+  body{
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* 4) Make the machine width include its padding+border (no more 92vw + extras) */
+  .slot-machine{
+    width: min(620px, 100%);
+    max-width: 100%;
+  }
+
+  /* 5) Belt+suspenders for inner layouts */
+  .speakers, .reels-container, .ui-panel, .payouts { max-width: 100%; min-width: 0; }
+  .payouts td { overflow: hidden; }
+
+  /* =========================================
+   FIX: BET CLIPPED ON SHORT/LANDSCAPE PHONES
+   (for "wide but short" viewports)
+   ========================================= */
+@media (max-height: 560px) and (orientation: landscape) {
+  /* Give each chunk its own row so nothing gets squeezed */
+  .ui-panel{
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "spin"
+      "bet"
+      "left";
+    gap: 10px;
+  }
+
+  #spin-btn{
+    justify-self: center;
+  }
+
+  /* BET: on top, +/- below */
+  .bet-controls{
+    grid-area: bet;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      "read read"
+      "down up";
+    gap: 6px 10px;
+    width: 100%;
+    justify-items: center;
+    align-items: center;
+  }
+
+  .bet-controls .readout{
+    grid-area: read;
+    width: 100%;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  #bet-down{ grid-area: down; }
+  #bet-up{ grid-area: up; }
+
+  /* Optional: tiny shrink so it never looks cramped */
+  .mini-btn{ width: 36px; height: 36px; }
+  .readout{ font-size: 1.05rem; }
+}
+
+  /* FORCE BET LAYOUT (final override) --
+    Row 1:  BET: <size>
+    Row 2:  [ + ] [ - ]
+  */
+  @media (max-width: 560px), (max-height: 560px) and (orientation: landscape){
+    .bet-controls{
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
+      grid-template-areas:
+        "read read"
+        "up down";
+      gap: 6px 10px;
+      width: 100%;
+      justify-self: stretch !important;
+      align-items: center;
+      justify-items: center;
+    }
+
+    .bet-controls .readout{
+      grid-area: read;
+      width: 100%;
+      justify-content: center;
+      white-space: nowrap;
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    #bet-up   { grid-area: up; }
+    #bet-down { grid-area: down; }
+  }
+
+  @media (max-width: 560px), (max-height: 560px) and (orientation: landscape){
+    .bet-controls{
+      place-self: center end !important;  /* vertical center + right side */
+    }
+  }
+
   </style>
 </head>
 <body>
