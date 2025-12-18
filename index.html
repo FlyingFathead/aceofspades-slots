@@ -61,6 +61,29 @@
       vertical-align: -0.12em;
     }
 
+    /* Make Twemoji behave like a centered icon, not baseline text */
+    img.emoji{
+      width: 1em;
+      height: 1em;
+      display: block;          /* kills baseline weirdness */
+      vertical-align: middle;  /* mostly irrelevant once display:block, but fine */
+    }
+
+    /* Reels: center the symbol box perfectly */
+    .reel{
+      line-height: 1;          /* important: removes font ascender/descender bias */
+    }
+
+    .reel .sym{
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 1em;             /* anchor box height */
+    }
+
+    /* If you want it *pixel-perfect* across engines, you can micro-nudge: */
+    /* .reel .sym { transform: translateY(0.02em); } */
+
     body {
       background-color: var(--metal-black);
       /* Subtle vignette + haze (the "room" behind the machine) */
@@ -1554,9 +1577,10 @@
     }
 
     function setReelSymbol(i, ch){
-      // Preserve your lock pill, but render the symbol as Twemoji SVG.
       reelEls[i].dataset.sym = ch;
-      reelEls[i].innerHTML = `${emojiHTML(ch)}<span class="lock-pill">LOCKED</span>`;
+      reelEls[i].innerHTML =
+        `<span class="sym" aria-hidden="true">${emojiHTML(ch)}</span>` +
+        `<span class="lock-pill">LOCKED</span>`;
     }
 
     function getReelSymbol(i){
