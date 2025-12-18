@@ -1,0 +1,2549 @@
+<!DOCTYPE html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ACE OF SPADES WEB SLOTS</title>
+  <!-- Primary Info -->
+  <link rel="canonical" href="https://github.com/FlyingFathead/aceofspades-slots/" />
+  <meta name="description" content="Ace of Spades Slots (a tribute to Lemmy): in-browser slots with reel locks (x2 per lock), double-stakes, jackpots, and chiptune riffs. Born to Lose, Spin to Win." />
+
+  <!-- Open Graph (Discord, Facebook, Slack, etc.) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Ace of Spades Slots" />
+  <meta property="og:title" content="Ace of Spades Slots" />
+  <meta property="og:description" content="Neon browser slots with reel locks (x2 per lock), double-stakes, jackpots, and chiptune riffs. Born to Lose, Spin to Win." />
+  <meta property="og:url" content="https://github.com/FlyingFathead/aceofspades-slots/" />
+  <meta property="og:image" content="https://github.com/FlyingFathead/aceofspades-slots/og.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Ace of Spades Slots: a web browser-based virtual slot machine with reels and a Vegas-style glow." />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter/X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Ace of Spades Slots" />
+  <meta name="twitter:description" content="Lock up to two reels, double your bet, chase jackpots -- and let the spade lights strobe." />
+  <meta name="twitter:image" content="https://github.com/FlyingFathead/aceofspades-slots/og.png" />
+  <meta name="twitter:image:alt" content="Ace of Spades Slots: a web browser-based virtual slot machine with spade reels and a Vegas-style glow." />
+
+  <!-- Nice-to-haves -->
+  <meta name="theme-color" content="#050505" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="application-name" content="Ace of Spades Slots" />
+  <link rel="icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" /> 
+  <link href="https://fonts.googleapis.com/css2?family=Metal+Mania&family=Rye&display=swap" rel="stylesheet" />
+
+  <script>
+    document.documentElement.classList.remove("no-js");
+    document.documentElement.classList.add("js");
+  </script>
+
+  <style>
+    :root {
+      --metal-black: #050505;
+      --chrome: #c0c0c0;
+      --highlight: #b30000;
+      --gold: #ffd700;
+      --ink: #111;
+      --logo-spade-y: -40%;      
+    }
+
+    body {
+      background-color: var(--metal-black);
+      /* Subtle vignette + haze (the "room" behind the machine) */
+      background-image:
+        radial-gradient(circle at 50% 40%, rgba(255,255,255,0.06), rgba(0,0,0,0) 55%),
+        radial-gradient(circle at 50% 120%, rgba(0,0,0,0.65), rgba(0,0,0,0) 55%);
+      color: var(--chrome);
+      font-family: 'Metal Mania', cursive;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      overflow: hidden;
+      text-transform: uppercase;
+      user-select: none;
+      position: relative;
+    }
+
+    /* --- JS required gate --- */
+    .js-required{
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      padding: 24px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+
+      background:
+        radial-gradient(circle at 50% 35%, rgba(255,255,255,0.08), rgba(0,0,0,0) 55%),
+        rgba(0,0,0,0.92);
+      color: rgba(255,255,255,0.92);
+    }
+
+    .no-js .js-required{ display: flex; }
+
+    .js-required .box{
+      max-width: 680px;
+      width: min(680px, 92vw);
+      padding: 18px 18px 16px;
+      border-radius: 14px;
+
+      background: linear-gradient(180deg, rgba(24,24,24,0.98), rgba(8,8,8,0.98));
+      border: 2px solid rgba(255,215,0,0.28);
+      box-shadow:
+        inset 0 0 18px rgba(0,0,0,0.85),
+        0 0 26px rgba(255,215,0,0.10);
+    }
+
+    .js-required .title{
+      font-family: "Metal Mania", cursive;
+      font-size: clamp(1.8rem, 4vw, 2.6rem);
+      letter-spacing: 2px;
+      margin: 0 0 8px;
+      text-shadow: 0 0 16px rgba(255,255,255,0.18);
+    }
+
+    .js-required .text{
+      font-family: "Rye", serif;
+      font-size: clamp(1.0rem, 2.2vw, 1.2rem);
+      color: rgba(255,215,0,0.90);
+      text-shadow: 0 0 10px rgba(255,215,0,0.10), 0 0 2px rgba(0,0,0,0.85);
+      margin: 0 0 10px;
+    }
+
+    .js-required .hint{
+      font-family: "Courier New", monospace;
+      font-size: 0.92rem;
+      color: rgba(192,192,192,0.85);
+      line-height: 1.35;
+      margin: 0;
+    }
+
+    /* Optional: dim the game when JS is disabled */
+    .no-js body > :not(.js-required){
+      filter: blur(2px) brightness(0.75);
+    }
+
+    /* Faint, glowing Ace-of-Spades card in the background (no images, inline SVG) */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -10%;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.10;
+      background-repeat: no-repeat;
+      background-position: center;
+      background-size: min(86vmin, 760px) auto;
+      /* A little extra glow */
+      filter: drop-shadow(0 0 22px rgba(255,255,255,0.35)) blur(0.2px);
+      mix-blend-mode: screen;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 1600'><defs><filter id='g' x='-50%25' y='-50%25' width='200%25' height='200%25'><feGaussianBlur stdDeviation='12' result='b'/><feMerge><feMergeNode in='b'/><feMergeNode in='SourceGraphic'/></feMerge></filter></defs><rect x='150' y='140' width='900' height='1320' rx='70' fill='none' stroke='%23ffffff' stroke-opacity='0.22' stroke-width='14' filter='url(%23g)'/><rect x='180' y='170' width='840' height='1260' rx='58' fill='none' stroke='%23ffffff' stroke-opacity='0.10' stroke-width='6'/><text x='195' y='311' font-family='Rye,serif' font-size='170' fill='%23ffffff' fill-opacity='0.18' filter='url(%23g)'>A</text><text x='1005' y='1391' text-anchor='end' font-family='Rye,serif' font-size='170' fill='%23ffffff' fill-opacity='0.18' filter='url(%23g)'>A</text><text x='600' y='1040' text-anchor='middle' font-family='serif' font-size='740' fill='%23ffffff' fill-opacity='0.14' filter='url(%23g)'>♠</text></svg>");
+    }
+
+    /* Keep the machine above the background card */
+    h1, .subtitle, .slot-machine { position: relative; z-index: 1; }
+
+    h1 {
+      font-size: 3.5rem;
+      color: var(--chrome);
+      text-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+      margin: 0 0 5px;
+      letter-spacing: 3px;
+      text-align: center;
+      position: relative;
+      display: inline-block;
+      z-index: 1;
+    }
+
+    /* Title glow: idle = left-to-right sweep, spinning = pulsing glow */
+    h1::after {
+      content: attr(data-text);
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      color: transparent;
+      -webkit-text-stroke: 1px rgba(255,255,255,0.10);
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0) 0%,
+        rgba(255,255,255,0.0) 30%,
+        rgba(255,215,0,0.55) 50%,
+        rgba(255,255,255,0.25) 60%,
+        rgba(255,255,255,0) 85%,
+        rgba(255,255,255,0) 100%
+      );
+      background-size: 220% 100%;
+      background-position: -140% 0;
+      -webkit-background-clip: text;
+      background-clip: text;
+      filter: blur(6px) drop-shadow(0 0 10px rgba(255,215,0,0.18));
+      opacity: 0.55;
+      animation: titleSweep 2.6s linear infinite;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes titleSweep {
+      0%   { background-position: -140% 0; opacity: 0.38; }
+      40%  { opacity: 0.70; }
+      100% { background-position: 140% 0; opacity: 0.38; }
+    }
+
+    @keyframes titlePulse {
+      0%   { opacity: 0.45; filter: blur(6px) drop-shadow(0 0 10px rgba(255,215,0,0.15)); }
+      50%  { opacity: 0.92; filter: blur(9px) drop-shadow(0 0 18px rgba(255,215,0,0.35)); }
+      100% { opacity: 0.45; filter: blur(6px) drop-shadow(0 0 10px rgba(255,215,0,0.15)); }
+    }
+
+    body.is-spinning h1::after {
+      /* Turn off the sweep overlay during the Vegas-style letter chase */
+      animation: none;
+      opacity: 0;
+    }
+
+    /* Vegas-style marquee chase (during spin): letters take turns glowing */
+    #title .title-letter {
+      display: inline-block;
+      position: relative;
+      white-space: pre; /* preserve spaces */
+    }
+
+    body.is-spinning #title {
+      /* Make the base title look dim while spinning */
+      color: rgba(192, 192, 192, 0.28);
+      text-shadow: none;
+    }
+
+    body.is-spinning #title .title-letter {
+    color: rgba(192, 192, 192, 0.18);
+    text-shadow: 0 0 0 rgba(0,0,0,0);
+    animation: titleChase 1.05s linear infinite;
+    animation-delay: calc(var(--i) * 0.06s);
+    }
+
+    @keyframes titleChase {
+    /* Start lit immediately (so the chase begins the instant spinning starts) */
+    0% {
+        color: rgba(255, 255, 255, 0.55);
+        text-shadow:
+        0 0 6px rgba(255, 215, 0, 0.35),
+        0 0 14px rgba(255, 215, 0, 0.22);
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.12));
+    }
+    6% {
+        color: rgba(255, 255, 255, 0.90);
+        text-shadow:
+        0 0 10px rgba(255, 215, 0, 0.60),
+        0 0 22px rgba(255, 215, 0, 0.33);
+        filter: drop-shadow(0 0 14px rgba(255, 215, 0, 0.18));
+    }
+    12% {
+        color: rgba(255, 255, 255, 0.55);
+        text-shadow:
+        0 0 6px rgba(255, 215, 0, 0.35),
+        0 0 14px rgba(255, 215, 0, 0.22);
+        filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.12));
+    }
+    /* Rest of the cycle: barely lit */
+    20%, 100% {
+        color: rgba(192, 192, 192, 0.18);
+        text-shadow: 0 0 0 rgba(0,0,0,0);
+        filter: none;
+    }
+    }
+
+    .subtitle{
+      font-family: 'Rye', serif;
+      color: var(--highlight);
+      font-size: 1.3rem;
+      margin: 0 0 20px;
+      text-shadow: 1px 1px 0 #000;
+      letter-spacing: 1px;
+
+      /* helps transforms/jitter look clean */
+      display: inline-block;
+      transform: translateZ(0);
+    }
+
+    /* WILD subtitle strobe ONLY while spinning */
+    body.is-spinning .subtitle{
+      animation:
+        subtitle-rgb 0.14s steps(1, end) infinite,
+        subtitle-jitter 0.10s steps(2, end) infinite;
+      will-change: color, text-shadow, transform, filter;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes subtitle-rgb{
+      0%   { color: rgb(255,  40,  40); text-shadow: 0 0 6px rgba(255, 40, 40, .95), 0 0 18px rgba(255, 40, 40, .55), 1px 1px 0 #000; filter: brightness(1.15); }
+      10%  { color: rgb( 40, 255,  40); text-shadow: 0 0 6px rgba( 40,255, 40, .95), 0 0 18px rgba( 40,255, 40, .55), 1px 1px 0 #000; filter: brightness(1.15); }
+      20%  { color: rgb( 40, 120, 255); text-shadow: 0 0 6px rgba( 40,120,255, .95), 0 0 18px rgba( 40,120,255, .55), 1px 1px 0 #000; filter: brightness(1.15); }
+      30%  { color: rgb(255,  40, 255); text-shadow: 0 0 6px rgba(255, 40,255, .95), 0 0 18px rgba(255, 40,255, .55), 1px 1px 0 #000; filter: brightness(1.18); }
+      40%  { color: rgb(255, 215,  40); text-shadow: 0 0 7px rgba(255,215, 40, .95), 0 0 22px rgba(255,215, 40, .60), 1px 1px 0 #000; filter: brightness(1.20); }
+      50%  { color: rgb( 40, 255, 215); text-shadow: 0 0 7px rgba( 40,255,215, .95), 0 0 22px rgba( 40,255,215, .60), 1px 1px 0 #000; filter: brightness(1.18); }
+      60%  { color: rgb(255, 255, 255); text-shadow: 0 0 9px rgba(255,255,255,.95), 0 0 26px rgba(255,255,255,.50), 1px 1px 0 #000; filter: brightness(1.25); }
+      70%  { color: rgb(120,  40, 255); text-shadow: 0 0 7px rgba(120, 40,255, .95), 0 0 22px rgba(120, 40,255, .60), 1px 1px 0 #000; filter: brightness(1.18); }
+      80%  { color: rgb( 40, 255, 120); text-shadow: 0 0 7px rgba( 40,255,120, .95), 0 0 22px rgba( 40,255,120, .60), 1px 1px 0 #000; filter: brightness(1.18); }
+      90%  { color: rgb(255,  80,  40); text-shadow: 0 0 7px rgba(255, 80, 40, .95), 0 0 22px rgba(255, 80, 40, .60), 1px 1px 0 #000; filter: brightness(1.16); }
+      100% { color: rgb( 40, 120, 255); text-shadow: 0 0 7px rgba( 40,120,255, .95), 0 0 22px rgba( 40,120,255, .60), 1px 1px 0 #000; filter: brightness(1.15); }
+    }
+
+    @keyframes subtitle-jitter{
+      0%   { transform: translate(0,0) rotate(0deg) scale(1); }
+      25%  { transform: translate(1px,-1px) rotate(-2deg) scale(1.03); }
+      50%  { transform: translate(-1px,1px) rotate(2deg) scale(0.99); }
+      75%  { transform: translate(1px,1px) rotate(-1deg) scale(1.02); }
+      100% { transform: translate(0,0) rotate(0deg) scale(1); }
+    }
+
+    /* The Machine Case */
+    .slot-machine {
+      background: #222;
+      border: 6px solid #444;
+      border-bottom: 6px solid #333;
+      border-radius: 15px;
+      padding: 22px;
+      box-shadow:
+        0 0 0 2px #000,
+        0 0 60px rgba(0,0,0,0.9),
+        inset 0 0 30px #000;
+      text-align: center;
+      max-width: 620px;
+      width: 92vw;
+      position: relative;
+    }
+
+    /* Chrome accents */
+    .slot-machine::before {
+      content: '';
+      position: absolute;
+      top: -10px; left: 20px; right: 20px;
+      height: 10px;
+      background: linear-gradient(90deg, #555, #fff, #555);
+      border-radius: 5px 5px 0 0;
+    }
+
+    /* Speaker Grills + centered spade */
+    .speaker {
+      width: 44px;
+      height: 44px;
+      background: repeating-radial-gradient(#222, #222 2px, #444 3px);
+      border-radius: 50%;
+      border: 2px solid #666;
+      box-shadow: inset 0 0 5px #000;
+
+      /* new */
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    .speaker::after{
+      content: "♠"; /* use "♠️" if you want the emoji style */
+      font-family: "Rye", serif;
+      font-size: 1.35rem;
+      line-height: 1;
+
+      color: rgba(230, 228, 219, 0.75);
+      text-shadow:
+        0 0 10px rgba(255,215,0,0.22),
+        0 0 2px rgba(0,0,0,0.85);
+      filter: drop-shadow(0 0 6px rgba(255,215,0,0.12));
+
+      pointer-events: none;
+    }
+
+    /* RGB spade strobe ONLY while spinning */
+    body.is-spinning .speaker::after{
+      animation:
+        spade-rgb 0.14s steps(1, end) infinite,
+        spade-jitter 0.10s steps(2, end) infinite;
+      will-change: color, text-shadow, transform, filter;
+    }
+
+    @keyframes spade-rgb{
+      0%   { color: rgb(255,  40,  40); text-shadow: 0 0 6px rgba(255, 40, 40, .9), 0 0 16px rgba(255, 40, 40, .55), 0 0 2px rgba(0,0,0,.9); }
+      10%  { color: rgb( 40, 255,  40); text-shadow: 0 0 6px rgba( 40,255, 40, .9), 0 0 16px rgba( 40,255, 40, .55), 0 0 2px rgba(0,0,0,.9); }
+      20%  { color: rgb( 40, 120, 255); text-shadow: 0 0 6px rgba( 40,120,255, .9), 0 0 16px rgba( 40,120,255, .55), 0 0 2px rgba(0,0,0,.9); }
+      30%  { color: rgb(255,  40, 255); text-shadow: 0 0 6px rgba(255, 40,255, .9), 0 0 16px rgba(255, 40,255, .55), 0 0 2px rgba(0,0,0,.9); }
+      40%  { color: rgb(255, 215,  40); text-shadow: 0 0 6px rgba(255,215, 40, .9), 0 0 16px rgba(255,215, 40, .55), 0 0 2px rgba(0,0,0,.9); }
+      50%  { color: rgb( 40, 255, 215); text-shadow: 0 0 6px rgba( 40,255,215, .9), 0 0 16px rgba( 40,255,215, .55), 0 0 2px rgba(0,0,0,.9); }
+      60%  { color: rgb(255, 255, 255); text-shadow: 0 0 8px rgba(255,255,255,.95), 0 0 20px rgba(255,255,255,.40), 0 0 2px rgba(0,0,0,.9); }
+      70%  { color: rgb(120,  40, 255); text-shadow: 0 0 6px rgba(120, 40,255, .9), 0 0 16px rgba(120, 40,255, .55), 0 0 2px rgba(0,0,0,.9); }
+      80%  { color: rgb( 40, 255, 120); text-shadow: 0 0 6px rgba( 40,255,120, .9), 0 0 16px rgba( 40,255,120, .55), 0 0 2px rgba(0,0,0,.9); }
+      90%  { color: rgb(255,  80,  40); text-shadow: 0 0 6px rgba(255, 80, 40, .9), 0 0 16px rgba(255, 80, 40, .55), 0 0 2px rgba(0,0,0,.9); }
+      100% { color: rgb( 40, 120, 255); text-shadow: 0 0 6px rgba( 40,120,255, .9), 0 0 16px rgba( 40,120,255, .55), 0 0 2px rgba(0,0,0,.9); }
+    }
+
+    /* tiny chaos so it feels "wild" without moving the whole speaker */
+    @keyframes spade-jitter{
+      0%   { transform: translate(0,0) rotate(0deg) scale(1); filter: brightness(1.0); }
+      25%  { transform: translate(1px,-1px) rotate(-8deg) scale(1.08); filter: brightness(1.35); }
+      50%  { transform: translate(-1px,1px) rotate(10deg) scale(0.98); filter: brightness(0.95); }
+      75%  { transform: translate(1px,1px) rotate(-6deg) scale(1.06); filter: brightness(1.25); }
+      100% { transform: translate(0,0) rotate(0deg) scale(1); filter: brightness(1.0); }
+    }    
+
+    /* Speaker row becomes the top strip (speaker • payout table • speaker) */
+    .speakers{
+      display: grid;
+      grid-template-columns: 44px 1fr 44px;
+      align-items: center;
+      gap: 10px;
+
+      margin-bottom: 10px;
+      padding: 6px 10px;
+
+      background: linear-gradient(180deg, rgba(140,140,140,0.14), rgba(0,0,0,0.12));
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+
+      box-shadow:
+        inset 0 0 14px rgba(0,0,0,0.70),
+        0 0 18px rgba(0,0,0,0.35);
+    }
+
+    /* Compact win conditions table */
+    .payouts{
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+
+      font-family: "Courier New", monospace;
+      font-weight: 900;
+      font-size: clamp(0.55rem, 1.25vw, 0.78rem);
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+
+      color: rgba(255,215,0,0.90);
+      text-shadow:
+        0 0 10px rgba(255,215,0,0.12),
+        0 0 2px rgba(0,0,0,0.85);
+    }
+
+    .payouts td{
+      padding: 2px 6px;
+      border-left: 1px solid rgba(255,255,255,0.07);
+    }
+
+    .payouts td:first-child{ border-left: none; }
+    .payouts tr + tr td{ border-top: 1px solid rgba(255,255,255,0.07); }
+
+    .payouts td > .cond{
+      color: rgba(255,255,255,0.75);
+    }
+
+    .payouts td > .pay{
+      float: right;
+      color: var(--gold);
+      text-shadow:
+        0 0 14px rgba(255,215,0,0.22),
+        0 0 2px rgba(0,0,0,0.85);
+    }
+
+    .payouts td.empty{
+      border-left-color: rgba(255,255,255,0.04);
+    }
+
+    /* --- VEGAS HEADER (message + meta above reels) --- */
+    .machine-header{
+      margin: 8px 0 12px;
+      padding: 10px 12px 8px;
+      background: linear-gradient(180deg, rgba(24,24,24,0.98), rgba(8,8,8,0.98));
+      border: 2px solid rgba(255,215,0,0.28);
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      box-shadow:
+        inset 0 0 18px rgba(0,0,0,0.85),
+        0 0 18px rgba(255,215,0,0.08);
+    }
+
+  /* --- SPADES MARQUEE STRIPS (smooth: animate background-position, not text) --- */
+  .machine-header::before,
+  .machine-header::after{
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    height: 18px;
+    pointer-events: none;
+    opacity: 0.85;
+    z-index: 0;
+
+    /* Repeat a tiny SVG tile horizontally */
+    background-repeat: repeat-x;
+    background-position: 0 50%;
+    background-size: 84px 18px;
+
+    /* Inline SVG tile: A♠ with a fake shadow baked in (no CSS filter) */
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20width%3D%2784%27%20height%3D%2718%27%20viewBox%3D%270%200%2084%2018%27%3E%3Crect%20width%3D%2784%27%20height%3D%2718%27%20fill%3D%27none%27/%3E%3Ctext%20x%3D%276%27%20y%3D%2713%27%20font-family%3D%27Rye%2Cserif%27%20font-size%3D%2714%27%20fill%3D%27%23000%27%20fill-opacity%3D%270.60%27%3EA%E2%99%A0%3C/text%3E%3Ctext%20x%3D%275%27%20y%3D%2712%27%20font-family%3D%27Rye%2Cserif%27%20font-size%3D%2714%27%20fill%3D%27%23ffd700%27%20fill-opacity%3D%270.85%27%3EA%E2%99%A0%3C/text%3E%3C/svg%3E");
+
+    /* neon glow on the whole strip (works with background-image tiles) */
+    filter:
+      drop-shadow(0 0 4px rgba(255,215,0,0.35))
+      drop-shadow(0 0 10px rgba(255,215,0,0.18))
+      drop-shadow(0 0 18px rgba(255,215,0,0.10));
+    mix-blend-mode: screen;
+    will-change: background-position, filter;
+    transform: translateZ(0);
+    }
+
+  .machine-header::before{
+    top: 6px;
+    animation: spade-strip 2.2s linear infinite;
+  }
+
+  .machine-header::after{
+    bottom: 6px;
+    animation: spade-strip-rev 2.8s linear infinite;
+  }
+
+  @keyframes spade-strip{
+    from { background-position: 0 50%; }
+    to   { background-position: -84px 50%; } /* exactly one tile width */
+  }
+
+  @keyframes spade-strip-rev{
+    from { background-position: -84px 50%; }
+    to   { background-position: 0 50%; }
+  }
+
+  /* RED "come press me" pulse for SPIN when it's ready */
+  @keyframes spin-ready-red {
+    0% {
+      filter: brightness(1);
+      transform: translateY(0);
+      box-shadow:
+        0 5px 0 #3e0000,
+        0 10px 10px rgba(0,0,0,0.55),
+        0 0 0 rgba(255,0,0,0);
+    }
+    50% {
+      filter: brightness(1.18) saturate(1.25);
+      transform: translateY(-1px);
+      box-shadow:
+        0 5px 0 #3e0000,
+        0 12px 14px rgba(0,0,0,0.55),
+        0 0 16px rgba(255,0,0,0.35),
+        0 0 34px rgba(255,0,0,0.22),
+        0 0 52px rgba(255,0,0,0.12);
+    }
+    100% {
+      filter: brightness(1);
+      transform: translateY(0);
+      box-shadow:
+        0 5px 0 #3e0000,
+        0 10px 10px rgba(0,0,0,0.55),
+        0 0 0 rgba(255,0,0,0);
+    }
+  }
+
+  /* apply pulse only when ready AND not disabled */
+  #spin-btn.ready:not(:disabled) {
+    animation: spin-ready-red 0.95s ease-in-out infinite;
+  }
+
+  /* if your old #spin-btn.ready box-shadow exists, nuke it so animation "wins" */
+  /* #spin-btn.ready {
+    box-shadow: none;
+  } */
+
+    /* keep header contents above the bulb layers */
+    .machine-header > *{ position: relative; z-index: 1; }
+
+    /* The Reels Window */
+    .reels-container {
+      display: flex;
+      justify-content: space-around;
+      background-color: #f0f0f0;
+      border: 4px solid #111;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+      box-shadow: inset 0 0 20px #000;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Scanline effect / Glass */
+    .reels-container::after {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background:
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.10) 50%),
+        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+      background-size: 100% 4px, 6px 100%;
+      pointer-events: none;
+      box-shadow: inset 0 0 30px rgba(0,0,0,0.5);
+    }
+
+    .reel {
+      font-size: 4.6rem;
+      width: 33.33%;
+      height: 118px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--ink);
+      border-right: 2px solid #aaa;
+      background: #fff;
+      position: relative;
+    }
+
+    .reel:last-child { border-right: none; }
+
+    .reel.locked {
+      outline: 3px solid var(--gold);
+      outline-offset: -6px;
+      box-shadow: inset 0 0 18px rgba(255,215,0,0.25);
+    }
+
+    .lock-pill {
+      position: absolute;
+      bottom: 6px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Courier New', monospace;
+      font-size: 0.8rem;
+      font-weight: 900;
+      letter-spacing: 1px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.25);
+      background: rgba(255,255,255,0.85);
+      color: #000;
+      display: none;
+    }
+    .reel.locked .lock-pill, .reel.held .lock-pill { display: inline-block; }
+
+    /* When a reel is LOCKED (selected) or HELD (during the spin), invert the *slot background*.
+       The symbol itself is NOT inverted; we just add a pale outline/glow so it stays readable on the dark fill. */
+    .reel.locked,
+    .reel.held {
+      background: linear-gradient(180deg, #141414, #0a0a0a);
+      border-right-color: rgba(255,255,255,0.18);
+      box-shadow:
+        inset 0 0 22px rgba(255,255,255,0.06),
+        inset 0 0 14px rgba(255,215,0,0.10);
+      /* Keep the symbol "intact" (same fill), but make it visible */
+      text-shadow:
+        0 0 10px rgba(255,255,255,0.35),
+        0 0 2px rgba(255,255,255,0.80);
+    }
+
+    @keyframes locked-glow {
+      0%   { filter: brightness(1);   box-shadow: 0 0 0 rgba(255,215,0,0); }
+      50%  { filter: brightness(1.2); box-shadow: 0 0 18px rgba(255,215,0,0.55); }
+      100% { filter: brightness(1);   box-shadow: 0 0 0 rgba(255,215,0,0); }
+    }
+
+    .reel.locked .lock-pill,
+    .reel.held .lock-pill {
+      background: rgba(255, 215, 0, 0.85);
+      border-color: rgba(0,0,0,0.35);
+      animation: locked-glow 0.85s infinite;
+    }
+
+    /* Spin Blur Animation */
+    .blur-spin {
+      animation: blurText 0.08s infinite;
+      color: transparent;
+      text-shadow: 0 0 8px rgba(0,0,0,0.8);
+    }
+
+    @keyframes blurText {
+      0% { transform: translateY(-5px) scaleY(1.1); }
+      50% { transform: translateY(5px) scaleY(0.9); }
+      100% { transform: translateY(-5px) scaleY(1.1); }
+    }
+
+    /* Lock buttons */
+    .lock-panel {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 8px 0 14px;
+    }
+    .lock-btn {
+      width: 33.33%;
+      background: linear-gradient(180deg, #3b3b3b, #111);
+      color: #ddd;
+      border: 1px solid #666;
+      border-radius: 10px;
+      padding: 10px 0;
+      cursor: pointer;
+      font-family: 'Rye', serif;
+      font-size: 0.9rem;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 0 #000;
+      box-shadow: inset 0 0 10px rgba(0,0,0,0.6);
+      transition: transform 0.08s;
+    }
+    .lock-btn:active { transform: translateY(2px); }
+    .lock-btn.locked {
+      background: linear-gradient(180deg, #ffd700, #b8860b);
+      color: #111;
+      border-color: #7a5c00;
+      text-shadow: none;
+    }
+    .lock-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* UI Panel */
+    .ui-panel {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 10px;
+      background: #111;
+      padding: 14px;
+      border: 2px solid #444;
+      border-radius: 8px;
+      box-shadow: inset 0 0 10px #000;
+    }
+
+    .readout {
+      font-family: 'Courier New', monospace;
+      font-weight: 900;
+      font-size: 1.25rem;
+      color: var(--gold);
+      text-shadow: 0 0 5px rgba(212, 175, 55, 0.5);
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      align-items: baseline;
+      white-space: nowrap;
+    }
+
+    .readout small {
+      color: rgba(255, 215, 0, 0.75);
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-shadow: none;
+    }
+
+    /* Stacked credits + wins (left side of UI panel) */
+    .readout-stack{
+      font-family: "Courier New", monospace;
+      font-weight: 900;
+      color: var(--gold);
+      text-shadow: 0 0 5px rgba(212, 175, 55, 0.5);
+      display: flex;
+      flex-direction: column;
+
+      /* FIX: left align + stick to left edge of the grid cell */
+      align-items: flex-start;
+      justify-self: start;
+      text-align: left;
+
+      gap: 4px;
+      white-space: nowrap;
+    }
+
+    .readout-stack .line{
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      justify-content: flex-start;
+    }
+
+    .wins-line{
+      /* FIX: make it start from the same left edge */
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+
+      font-size: 0.92rem;
+      letter-spacing: 0.6px;
+      color: rgba(255,215,0,0.80);
+      text-shadow: none;
+    }
+
+    .wins-line.pos{ color: rgba(60,255,160,0.90); }
+    .wins-line.neg{ color: rgba(255, 80, 80,0.90); }
+
+    .bet-controls {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .mini-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      border: 1px solid #555;
+      background: linear-gradient(180deg, #444, #1a1a1a);
+      color: #eee;
+      font-family: 'Metal Mania', cursive;
+      font-size: 1.6rem;
+      cursor: pointer;
+      box-shadow: 0 4px 0 #0a0a0a;
+      transition: transform 0.08s;
+    }
+    .mini-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #0a0a0a; }
+    .mini-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    button#spin-btn {
+      background: linear-gradient(180deg, #d32f2f, #8b0000);
+      color: #fff;
+      font-family: 'Metal Mania', cursive;
+      font-size: 1.8rem;
+      border: 2px solid #5e0000;
+      padding: 10px 40px;
+      cursor: pointer;
+      border-radius: 8px;
+      box-shadow: 0 5px 0 #3e0000, 0 10px 10px rgba(0,0,0,0.5);
+      transition: all 0.1s;
+      text-shadow: 1px 1px 0 #000;
+    }
+
+    button#spin-btn:active {
+      transform: translateY(5px);
+      box-shadow: 0 0 0 #3e0000, inset 0 0 10px rgba(0,0,0,0.5);
+    }
+
+    button#spin-btn:disabled {
+      background: #444;
+      border-color: #333;
+      color: #888;
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: translateY(5px);
+    }
+
+    /* #message {
+      height: 30px;
+      margin-top: 12px;
+      font-size: 1.3rem;
+      color: #fff;
+      text-shadow: 0 0 5px #000;
+      font-weight: bold;
+    } */
+
+    /* UPDATED message styling (same colors, more neon/vegas) */
+    #message{
+      margin: 0;
+      min-height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      font-weight: bold;
+      letter-spacing: 1.2px;
+      text-shadow:
+        0 0 8px rgba(255,255,255,0.22),
+        0 0 18px rgba(255,215,0,0.10),
+        0 0 2px rgba(0,0,0,0.85);
+      -webkit-text-stroke: 0.35px rgba(0,0,0,0.55);
+    }
+
+    /* Make #message able to host animated overlays */
+    #message { position: relative; }
+
+    /* DOUBLE STAKES OR QUIT -- TEXT GLOW ONLY (no backplate, no scrolling bg) */
+    #message.double-stakes{
+      padding: 0;                 /* keep it simple */
+      background: transparent !important;
+      box-shadow: none !important;
+      border-radius: 0;
+
+      /* make sure glow is noticeable */
+      color: var(--highlight);
+
+      animation: stakesTextGlow 0.95s ease-in-out infinite;
+      will-change: text-shadow, filter;
+    }
+
+    @keyframes stakesTextGlow{
+      0%, 100%{
+        text-shadow:
+          0 0 2px  rgba(0,0,0,0.90),
+          0 0 10px rgba(255, 0, 0, 0.40),
+          0 0 18px rgba(255, 0, 0, 0.28),
+          0 0 22px rgba(255,215,0,0.18);
+        filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.25));
+      }
+      50%{
+        text-shadow:
+          0 0 3px  rgba(0,0,0,0.95),
+          0 0 16px rgba(255, 0, 0, 0.70),
+          0 0 30px rgba(255, 0, 0, 0.48),
+          0 0 34px rgba(255,215,0,0.34),
+          0 0 46px rgba(255,255,255,0.16);
+        filter: drop-shadow(0 0 12px rgba(255, 0, 0, 0.45));
+      }
+    }
+
+    /* "ANOTHER SPIN?" -- CTA glow (text glow only) */
+    #message.another-spin{
+      padding: 0;
+      background: transparent !important;
+      box-shadow: none !important;
+
+      /* must beat inline style="color: #888" */
+      color: rgba(255,255,255,0.88) !important;
+
+      animation: anotherSpinGlow 1.15s ease-in-out infinite;
+      will-change: text-shadow, filter;
+    }
+
+    @keyframes anotherSpinGlow{
+      0%, 100%{
+        text-shadow:
+          0 0 2px  rgba(0,0,0,0.92),
+          0 0 10px rgba(255,215,0,0.22),
+          0 0 20px rgba(255,215,0,0.14),
+          0 0 26px rgba(255,255,255,0.10);
+        filter: drop-shadow(0 0 6px rgba(255,215,0,0.16));
+        transform: translateY(0);
+      }
+      50%{
+        text-shadow:
+          0 0 3px  rgba(0,0,0,0.96),
+          0 0 16px rgba(255,215,0,0.40),
+          0 0 30px rgba(255,215,0,0.22),
+          0 0 40px rgba(255,  0,0,0.10),
+          0 0 52px rgba(255,255,255,0.16);
+        filter: drop-shadow(0 0 12px rgba(255,215,0,0.28));
+        transform: translateY(-0.5px);
+      }
+    }
+
+    .audio-control {
+      margin-top: 10px;
+      font-size: 0.8rem;
+      color: #888;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .audio-control:hover { color: #fff; }
+
+    /* UPDATED meta styling (same palette, slightly “signage”) */
+    .meta{
+      margin-top: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: rgba(192,192,192,0.85);
+      letter-spacing: 1px;
+      text-shadow:
+        0 0 10px rgba(255,215,0,0.08),
+        0 0 2px rgba(0,0,0,0.85);
+    }
+
+    /* .meta {
+      margin-top: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: rgba(192,192,192,0.85);
+      letter-spacing: 1px;
+    } */
+
+    /* Win Animations */
+    @keyframes flash-win {
+      0% { background-color: #fff; }
+      50% { background-color: var(--gold); }
+      100% { background-color: #fff; }
+    }
+    .win-flash { animation: flash-win 0.2s infinite; }
+
+    /* "READY" / "LOCK AVAILABLE" cues */
+    @keyframes ready-pulse {
+      0%   { filter: brightness(1);   box-shadow: 0 0 0 rgba(255,215,0,0); }
+      50%  { filter: brightness(1.15); box-shadow: 0 0 18px rgba(255,215,0,0.28); }
+      100% { filter: brightness(1);   box-shadow: 0 0 0 rgba(255,215,0,0); }
+    }
+
+    #spin-btn.ready {
+      box-shadow: 0 5px 0 #3e0000, 0 10px 10px rgba(0,0,0,0.5), 0 0 18px rgba(255,215,0,0.12);
+    }
+
+    #spin-btn.pulse {
+      animation: ready-pulse 0.9s infinite;
+    }
+
+    .lock-btn.pulse {
+      animation: ready-pulse 0.9s infinite;
+    }
+
+    .reel.can-lock {
+      box-shadow: inset 0 0 18px rgba(255,215,0,0.10);
+    }
+
+    .reel.pulse {
+      animation: ready-pulse 0.9s infinite;
+    }
+
+    @keyframes shake-screen {
+      0% { transform: translate(1px, 1px) rotate(0deg); }
+      10% { transform: translate(-1px, -2px) rotate(-1deg); }
+      20% { transform: translate(-3px, 0px) rotate(1deg); }
+      30% { transform: translate(3px, 2px) rotate(0deg); }
+      40% { transform: translate(1px, -1px) rotate(1deg); }
+      50% { transform: translate(-1px, 2px) rotate(-1deg); }
+      60% { transform: translate(-3px, 1px) rotate(0deg); }
+      70% { transform: translate(3px, 1px) rotate(-1deg); }
+      80% { transform: translate(-1px, -1px) rotate(1deg); }
+      90% { transform: translate(1px, 2px) rotate(0deg); }
+      100% { transform: translate(1px, -2px) rotate(-1deg); }
+    }
+    .shake { animation: shake-screen 0.5s; }
+
+    @media (max-width: 560px) {
+      .reel { font-size: 3.6rem; height: 105px; }
+      h1 { font-size: 2.25rem; }
+      button#spin-btn { padding: 10px 22px; font-size: 1.5rem; }
+      .mini-btn { width: 38px; height: 38px; }
+      .readout { font-size: 1.1rem; }
+      .lock-btn { font-size: 0.8rem; padding: 9px 0; }
+    }
+
+    /* coin button */ 
+    .coin-btn{
+      margin-left: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,215,0,0.35);
+      background: linear-gradient(180deg, #444, #1a1a1a);
+      color: #ffd700;
+      cursor: pointer;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.55);
+      font-size: 1.05rem;
+      line-height: 1;
+    }
+    .coin-btn:active{ transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.55); }
+
+    /* insert more credits */
+    .credit-insert{
+    margin-top: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(24,24,24,0.98), rgba(8,8,8,0.98));
+    border: 2px solid rgba(255,215,0,0.28);
+    border-radius: 12px;
+    box-shadow:
+      inset 0 0 18px rgba(0,0,0,0.85),
+      0 0 18px rgba(255,215,0,0.08);
+  }
+  .credit-insert[hidden]{ display: none; }
+
+  .credit-insert.broke{
+    border-color: rgba(255,0,0,0.35);
+    box-shadow:
+      inset 0 0 18px rgba(0,0,0,0.85),
+      0 0 20px rgba(255,0,0,0.10);
+  }
+
+  .insert-label{
+    font-family: "Courier New", monospace;
+    font-size: 0.85rem;
+    color: rgba(192,192,192,0.9);
+    letter-spacing: 1px;
+    margin-right: 4px;
+    user-select: none;
+  }
+
+  .insert-btn{
+    border: 1px solid rgba(255,215,0,0.35);
+    background: linear-gradient(180deg, #ffd700, #b8860b);
+    color: #111;
+    border-radius: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-family: "Rye", serif;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 0 rgba(0,0,0,0.55);
+    transition: transform 0.08s;
+  }
+  .insert-btn:active{ transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,0.55); }
+
+  /* --- Spade behind logo+subtitle --- */
+  .logo-area{
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* the spade itself */
+  .logo-area::before{
+    content: "♠";
+    position: absolute;
+    left: 50%;
+    top: 0; /* (your "00%" is fine, but 0 is cleaner) */
+    transform: translate(-50%, var(--logo-spade-y));    
+    pointer-events: none;
+    z-index: 0;
+
+    font-family: "Rye", serif;
+    font-size: min(28vmin, 300px);
+    line-height: 1;
+
+    color: rgba(255,255,255,0.07);
+    text-shadow:
+      0 0 18px rgba(255,255,255,0.10),
+      0 0 34px rgba(255,215,0,0.12),
+      0 0 70px rgba(255,215,0,0.06);
+    filter: blur(0.35px);
+    mix-blend-mode: screen;
+  }
+
+  /* keep text above the spade */
+  .logo-area > *{
+    position: relative;
+    z-index: 1;
+  }
+
+  /* faint pulse for the logo spade (peak = current look) */
+  .logo-area::before{
+    animation: logoSpadePulse 3.2s ease-in-out infinite;
+  }
+
+  /* 50% matches CURRENT values (peak) */
+  @keyframes logoSpadePulse{
+    0%, 100%{
+      opacity: 0.55;
+      text-shadow:
+        0 0 12px rgba(255,255,255,0.07),
+        0 0 22px rgba(255,215,0,0.08),
+        0 0 46px rgba(255,215,0,0.04);
+      filter: blur(0.35px) brightness(0.92);
+    }
+    50%{
+      opacity: 1;
+      text-shadow:
+        0 0 18px rgba(255,255,255,0.10),
+        0 0 34px rgba(255,215,0,0.12),
+        0 0 70px rgba(255,215,0,0.06);
+      filter: blur(0.35px) brightness(1.02);
+    }
+  }
+
+  /* SPIN: blink the logo spade in/out completely */
+  body.is-spinning .logo-area::before{
+    animation: logoSpadeBlink 0.14s steps(1, end) infinite !important;
+  }
+
+  @keyframes logoSpadeBlink{
+    0%   { opacity: 0; filter: blur(0.35px) brightness(0.9); }
+    50%  { opacity: 1; filter: blur(0.35px) brightness(1.1); }
+    100% { opacity: 0; filter: blur(0.35px) brightness(0.9); }
+  }
+
+  /* SMALL WIN: quick gold pulse on the big logo spade */
+  body.spade-pop .logo-area::before{
+    animation: logoSpadePop 0.65s ease-in-out 1 !important;
+    opacity: 1;
+  }
+
+  @keyframes logoSpadePop{
+    0%{
+      opacity: 0.60;
+      color: rgba(255,255,255,0.10);
+      text-shadow:
+        0 0 12px rgba(255,255,255,0.07),
+        0 0 22px rgba(255,215,0,0.08),
+        0 0 46px rgba(255,215,0,0.04);
+      filter: blur(0.35px) brightness(0.95) saturate(1.0);
+      transform: translate(-50%, -42%) rotate(0deg) scale(1.00);
+    }
+    45%{
+      opacity: 1;
+      color: rgb(255,215,0);
+      text-shadow:
+        0 0 18px rgba(255,215,0,0.35),
+        0 0 36px rgba(255,215,0,0.22),
+        0 0 72px rgba(255,255,255,0.14);
+      filter: blur(0.28px) brightness(1.35) saturate(1.45);
+      transform: translate(-50%, -42%) rotate(-6deg) scale(1.06);
+    }
+    100%{
+      opacity: 0.70;
+      color: rgba(255,255,255,0.10);
+      text-shadow:
+        0 0 12px rgba(255,255,255,0.07),
+        0 0 22px rgba(255,215,0,0.08),
+        0 0 46px rgba(255,215,0,0.04);
+      filter: blur(0.35px) brightness(0.98) saturate(1.0);
+      transform: translate(-50%, -42%) rotate(0deg) scale(1.00);
+    }
+  }
+
+  /* BIG WIN: color-haywire (wins over is-spinning due to !important) */
+  body.spade-mad .logo-area::before{
+    animation: logoSpadeHaywire 0.09s steps(1, end) infinite !important;
+    opacity: 1;
+  }
+
+  @keyframes logoSpadeHaywire{
+    0%{
+      color: rgb(255, 40, 40);
+      text-shadow: 0 0 10px rgba(255,40,40,.95), 0 0 26px rgba(255,40,40,.55), 0 0 60px rgba(255,215,0,.18);
+      filter: blur(0.20px) brightness(1.55) saturate(1.4) hue-rotate(0deg);
+      transform: translate(-50%, -42%) rotate(-10deg) scale(1.04);
+    }
+    20%{
+      color: rgb(40, 255, 40);
+      text-shadow: 0 0 10px rgba(40,255,40,.95), 0 0 26px rgba(40,255,40,.55), 0 0 60px rgba(40,255,215,.18);
+      filter: blur(0.25px) brightness(1.65) saturate(1.6) hue-rotate(40deg);
+      transform: translate(-50%, -42%) rotate(12deg) scale(0.98);
+    }
+    40%{
+      color: rgb(40, 120, 255);
+      text-shadow: 0 0 10px rgba(40,120,255,.95), 0 0 26px rgba(40,120,255,.55), 0 0 70px rgba(255,255,255,.16);
+      filter: blur(0.18px) brightness(1.75) saturate(1.7) hue-rotate(90deg);
+      transform: translate(-50%, -42%) rotate(-14deg) scale(1.06);
+    }
+    60%{
+      color: rgb(255, 40, 255);
+      text-shadow: 0 0 12px rgba(255,40,255,.95), 0 0 30px rgba(255,40,255,.55), 0 0 78px rgba(255,215,0,.22);
+      filter: blur(0.22px) brightness(1.70) saturate(1.8) hue-rotate(140deg);
+      transform: translate(-50%, -42%) rotate(16deg) scale(1.01);
+    }
+    80%{
+      color: rgb(255, 215, 40);
+      text-shadow: 0 0 12px rgba(255,215,40,.95), 0 0 34px rgba(255,215,40,.60), 0 0 90px rgba(255,255,255,.18);
+      filter: blur(0.16px) brightness(1.90) saturate(1.9) hue-rotate(190deg);
+      transform: translate(-50%, -42%) rotate(-8deg) scale(1.08);
+    }
+    100%{
+      color: rgb(40, 255, 215);
+      text-shadow: 0 0 12px rgba(40,255,215,.95), 0 0 34px rgba(40,255,215,.60), 0 0 90px rgba(255,255,255,.14);
+      filter: blur(0.20px) brightness(1.70) saturate(1.7) hue-rotate(240deg);
+      transform: translate(-50%, -42%) rotate(10deg) scale(1.00);
+    }
+  }
+
+  </style>
+</head>
+<body>
+
+    <div class="js-required" role="alert" aria-live="assertive">
+    <div class="box">
+      <div class="title">JavaScript required</div>
+      <p class="text">Enable JavaScript to play Ace of Spades Slots.</p>
+      <p class="hint">
+        If you use NoScript/uBlock/script blocking, allow scripts for this page and reload.
+      </p>
+    </div>
+  </div>
+
+  <div class="logo-area">
+    <h1 id="title" data-text="Ace of Spades">Ace of Spades</h1>
+    <div class="subtitle">"Born to Lose, Spin to Win"</div>
+  </div>
+
+  <div class="slot-machine" id="machine">
+    <div class="speakers">
+      <div class="speaker" id="spk-l"></div>
+
+      <table class="payouts" aria-label="Win conditions">
+        <tbody>
+          <tr>
+            <td><span class="cond">♠️♠️♠️</span><span class="pay" id="pay-aces">x50</span></td>
+            <td><span class="cond">7️⃣7️⃣7️⃣</span><span class="pay" id="pay-777">x20</span></td>
+            <td><span class="cond">ANY 3</span><span class="pay" id="pay-any3">x10</span></td>
+          </tr>
+          <tr>
+            <td><span class="cond">2×♠️</span><span class="pay" id="pay-2aces">x2</span></td>
+            <td><span class="cond">2×7️⃣</span><span class="pay" id="pay-27">x3</span></td>
+            <td class="empty"></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="speaker" id="spk-r"></div>
+    </div>
+
+    <!-- NEW: Vegas-style header (message + bet/meta) -->
+    <div class="machine-header" aria-label="Machine status">
+      <div id="message">CLICK SPIN TO START</div>
+      <div class="meta">LOCKS DOUBLE YOUR BET (x2 PER LOCK)<br>MAX 2 LOCKS | TOTAL: <span id="totalbet">10</span> (x<span id="mult">1</span>)</div>
+    </div>
+
+    <div class="reels-container" id="reels-container">
+      <div class="reel" id="reel1">♠️<span class="lock-pill">LOCKED</span></div>
+      <div class="reel" id="reel2">♠️<span class="lock-pill">LOCKED</span></div>
+      <div class="reel" id="reel3">♠️<span class="lock-pill">LOCKED</span></div>
+    </div>
+
+    <div class="lock-panel" aria-label="Reel locks">
+      <button class="lock-btn" id="lock1" type="button">LOCK 1</button>
+      <button class="lock-btn" id="lock2" type="button">LOCK 2</button>
+      <button class="lock-btn" id="lock3" type="button">LOCK 3</button>
+    </div>
+
+    <div class="ui-panel">
+
+        <div class="readout-stack" aria-label="Credits and net wins">
+          <div class="line">
+            CREDITS: <span id="credits">100</span>
+            <button class="coin-btn" id="coin-btn" type="button" title="Insert coin">💰</button>
+          </div>
+
+          <div class="wins-line" id="wins-row">
+            WINS: <span id="wins">0</span>
+          </div>
+
+          <div class="wins-line" id="bank-row">
+            BANK: <span id="bank">0</span>
+          </div>
+          <button id="cashout-btn" type="button" class="mini-btn">💸</button>
+
+        </div>
+      
+      <button id="spin-btn" onclick="spin()">SPIN</button>
+
+      <div class="bet-controls">
+        <button class="mini-btn" id="bet-down" type="button" aria-label="Bet down">-</button>
+        <div class="readout">BET: <span id="bet">10</span></div>
+        <button class="mini-btn" id="bet-up" type="button" aria-label="Bet up">+</button>
+      </div>
+    </div>
+
+    <div class="credit-insert" id="credit-insert" aria-label="Insert credits" hidden>
+      <span class="insert-label">INSERT COIN:</span>
+      <button class="insert-btn" type="button" data-add="50">+50</button>
+      <button class="insert-btn" type="button" data-add="100">+100</button>
+      <button class="insert-btn" type="button" data-add="250">+250</button>
+      <button class="insert-btn" type="button" data-add="500">+500</button>
+    </div>
+
+    <div class="audio-control" onclick="toggleAudio()" id="audio-toggle">[🔊 SOUND: ON]</div>
+  </div>
+
+  <script>
+    /* --- CONFIG --- */
+    // Aces are rare (1/12 here) so 3x A♠ stays a real event.
+    const SYMBOLS = ['♠️', '💀', '💀', '🎸', '🎸', '🎸', '🥃', '🥃', '🥃', '🎲', '🎲', '7️⃣'];
+    const SHOW_WIN_COUNTER = true; // toggle visibility in code
+    const BET_MIN = 5;
+    const BET_MAX = 250;
+    const BET_STEP = 5;
+    const MAX_LOCKS = 2;
+
+    // Payout multipliers applied to TOTAL BET (base bet * lock multiplier)
+    const PAY = {
+      JACKPOT_ACES: 50,   // ♠️♠️♠️
+      TRIPLE_ANY: 10,     // any 3-of-a-kind
+      DOUBLE_ACES: 2,     // any 2 aces
+      TRIPLE_7: 20,       // 7️⃣7️⃣7️⃣ (extra)
+      DOUBLE_7: 3,        // any 2 sevens (extra)
+    };
+
+    /* --- STATE --- */
+    let credits = 100;
+    let baseBet = 10;
+    let spinning = false;
+    let audioEnabled = true;
+    let gameOver = false;
+    let coinPanelPinned = false;
+    let netWins = 0; // can go negative; does NOT include coin inserts
+    let bank = 0;
+    let __spadeMadTimer = null;
+    let __spadePopTimer = null;
+
+    // Lock rules:
+    // 1) You can't use locking on your first spin.
+    // 2) Locks are consumed immediately when you press SPIN.
+    //    After any locked spin, the next spin must be a clean spin (no locks).
+    let hasSpun = false;
+    let lockCooldown = false;
+    // Set to true when the result is any 3-in-a-row win (prevents locking the displayed triple next round)
+    let tripleWinThisSpin = false;
+    // Which reels are held for the CURRENT spin animation (so the LOCKED tag stays visible while spinning)
+    let spinHeld = [false, false, false];
+
+    // Reel locks: each lock doubles the bet (2^locks)
+    const locks = [false, false, false];
+
+    // Track current displayed symbols so locks can hold them
+    let current = ['♠️', '♠️', '♠️'];
+
+    /* --- THEME MUSIC ---*/
+    const SEQ_THEME = {
+      "bpm": 206,
+      "bars": 2,
+      "stepsPerBar": 16,
+      "tracks": [
+        {
+          "name": "BASS",
+          "kind": "osc",
+          "view": "piano",
+          "wave": "square",
+          "vol": 0.315,
+          "transpose": -12,
+          "defLen": 3,
+          "defVel": 0.95,
+          "pitchLow": 25,
+          "pitchHigh": 60,
+          "notes": [
+            { "step": 0,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 4,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 6,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 10, "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 12, "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 16, "midi": 59, "len": 3, "vel": 0.95 },
+            { "step": 22, "midi": 58, "len": 3, "vel": 0.95 },
+            { "step": 28, "midi": 57, "len": 3, "vel": 0.95 }
+          ]
+        },
+        {
+          "name": "LEAD",
+          "kind": "osc",
+          "view": "piano",
+          "wave": "sawtooth",
+          "vol": 0.145,
+          "transpose": 0,
+          "defLen": 2,
+          "defVel": 0.85,
+          "pitchLow": 48,
+          "pitchHigh": 84,
+          "notes": [
+            { "step": 0,  "midi": 76, "len": 3, "vel": 0.85 },
+            { "step": 4,  "midi": 76, "len": 2, "vel": 0.85 },
+            { "step": 6,  "midi": 76, "len": 2, "vel": 0.85 },
+            { "step": 10, "midi": 76, "len": 2, "vel": 0.85 },
+            { "step": 12, "midi": 76, "len": 2, "vel": 0.85 },
+            { "step": 16, "midi": 83, "len": 2, "vel": 0.85 },
+            { "step": 22, "midi": 82, "len": 2, "vel": 0.85 },
+            { "step": 28, "midi": 81, "len": 2, "vel": 0.85 }
+          ]
+        },
+        {
+          "name": "HAT",
+          "kind": "noise",
+          "view": "steps",
+          "vol": 0.16,
+          "dur": 0.09,
+          "steps": [
+            1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
+            1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0
+          ]
+        }
+      ]
+    };
+
+    /* --- LOSE / BUST JINGLE (plays via same mini-seq player as theme) --- */
+    const SEQ_LOSE = {
+      "bpm": 206,
+      "bars": 2,
+      "stepsPerBar": 16,
+      "tracks": [
+        {
+          "name": "BASS",
+          "kind": "osc",
+          "view": "piano",
+          "wave": "square",
+          "vol": 0.4,
+          "transpose": -12,
+          "defLen": 2,
+          "defVel": 0.95,
+          "pitchLow": 36,
+          "pitchHigh": 60,
+          "notes": [
+            { "step": 0,  "midi": 52, "len": 2, "vel": 0.95 },
+            { "step": 6,  "midi": 50, "len": 2, "vel": 0.95 },
+            { "step": 12, "midi": 52, "len": 2, "vel": 0.95 }
+          ]
+        },
+        {
+          "name": "NOISE 1",
+          "kind": "noise",
+          "view": "steps",
+          "vol": 0.4,
+          "dur": 0.195,
+          "steps": [
+            1,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,
+            0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+          ]
+        }
+      ]
+    };
+
+    /* --- DOM --- */
+    const els = {
+      r1: document.getElementById('reel1'),
+      r2: document.getElementById('reel2'),
+      r3: document.getElementById('reel3'),
+      msg: document.getElementById('message'),
+      cred: document.getElementById('credits'),
+      bet: document.getElementById('bet'),
+      btn: document.getElementById('spin-btn'),
+      machine: document.getElementById('machine'),
+      spkL: document.getElementById('spk-l'),
+      spkR: document.getElementById('spk-r'),
+      betUp: document.getElementById('bet-up'),
+      betDown: document.getElementById('bet-down'),
+      lock1: document.getElementById('lock1'),
+      lock2: document.getElementById('lock2'),
+      lock3: document.getElementById('lock3'),
+      mult: document.getElementById('mult'),
+      totalbet: document.getElementById('totalbet'),
+      audioToggle: document.getElementById('audio-toggle'),
+      creditInsert: document.getElementById('credit-insert'),
+      coinBtn: document.getElementById("coin-btn"),
+      wins: document.getElementById("wins"),
+      winsRow: document.getElementById("wins-row"),
+      bank: document.getElementById("bank"),
+      bankRow: document.getElementById("bank-row"),
+      cashoutBtn: document.getElementById("cashout-btn"),      
+    };
+
+    const reelEls = [els.r1, els.r2, els.r3];
+    const lockBtns = [els.lock1, els.lock2, els.lock3];
+
+    function randSymbol() {
+      return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+    }
+
+    function lockedCount() {
+      return locks.reduce((a, x) => a + (x ? 1 : 0), 0);
+    }
+
+    function lockMultiplier() {
+      return 2 ** lockedCount();
+    }
+
+    function totalBet() {
+      return baseBet * lockMultiplier();
+    }
+
+    function setMessage(text, color = "#fff") {
+      els.msg.textContent = text;
+      els.msg.style.color = color;
+
+      const isDouble  = (text === "DOUBLE STAKES OR QUIT");
+      const isAnother = (text === "BORN TO LOSE, PLAY TO WIN. ANOTHER SPIN?");
+
+      els.msg.classList.toggle("double-stakes", isDouble);
+      els.msg.classList.toggle("another-spin", isAnother);
+    }
+
+    function addCredits(amount){
+      amount = amount | 0;
+      if (amount <= 0) return;
+
+      credits += amount;
+
+      setMessage(`+${amount} CREDITS — SPIN`, "gold");
+      playUiBlip(820, "square", 0.07, 0.14);
+      updateUI();
+    }
+
+    function updateUI() {
+      els.cred.textContent = credits;
+      els.bet.textContent = baseBet;
+      els.mult.textContent = lockMultiplier();
+      els.totalbet.textContent = totalBet();
+
+      const broke = credits < BET_MIN;
+      const canSpin = !spinning && credits >= totalBet();
+
+      // SPIN only disabled when spinning or you can't afford current totalBet()
+      els.btn.disabled = !canSpin;
+
+      // Bet controls only disabled during spinning (so you can lower bet when short)
+      els.betUp.disabled = spinning;
+      els.betDown.disabled = spinning;
+
+      // // Show INSERT COIN row only when you can't spin due to credits
+      // const needCredits = !spinning && !canSpin;
+      // els.creditInsert.hidden = !needCredits;
+
+      // Show INSERT COIN row when you need credits OR the user pinned it with 💰
+      const needCredits = !spinning && !canSpin;
+      const showInsert = !spinning && (needCredits || coinPanelPinned);
+      els.creditInsert.hidden = !showInsert;
+      els.creditInsert.classList.toggle('broke', broke);
+
+      // Bank / cashout functionality
+      els.bank.textContent = bank;
+      // const canCashout = !spinning && !gameOver && hasSpun && (netWins > 0);
+
+      const canCashout = !spinning && !gameOver && hasSpun && (netWins > 0);
+      els.cashoutBtn.disabled = !canCashout;
+      els.cashoutBtn.style.opacity = canCashout ? "1" : "0.35";
+
+      // READY glow only when you can actually spin
+      els.btn.classList.toggle("ready", canSpin);
+
+      const lockSystemDisabled = spinning || !hasSpun || lockCooldown || broke;
+      const atLimit = lockedCount() >= MAX_LOCKS;
+      const canUseLocks = !lockSystemDisabled;
+
+      // (keep the existing lock loop, but it should use lockSystemDisabled / canUseLocks)
+      for (let i = 0; i < 3; i++) {
+        const lockedVis = locks[i] || (spinning && spinHeld[i]);
+
+        reelEls[i].classList.toggle('locked', lockedVis);
+        reelEls[i].classList.toggle('held', spinning && spinHeld[i]);
+
+        lockBtns[i].classList.toggle('locked', locks[i]);
+        lockBtns[i].textContent = locks[i] ? `UNLOCK ${i + 1}` : `LOCK ${i + 1}`;
+
+        const btnDisabled = lockSystemDisabled || (!locks[i] && atLimit);
+        lockBtns[i].disabled = btnDisabled;
+
+        const canLock = !btnDisabled && !locks[i];
+        reelEls[i].classList.toggle('can-lock', canLock);
+
+        lockBtns[i].classList.toggle('pulse', canUseLocks && canLock);
+        reelEls[i].classList.toggle('pulse', canUseLocks && canLock);
+      }
+
+      if (els.winsRow && els.wins) {
+        els.winsRow.hidden = !SHOW_WIN_COUNTER;
+
+        const v = netWins | 0;
+        els.wins.textContent = (v > 0) ? `+${v}` : `${v}`;
+
+        els.winsRow.classList.toggle("pos", v > 0);
+        els.winsRow.classList.toggle("neg", v < 0);
+      }
+
+      els.audioToggle.textContent = audioEnabled ? "[🔊 SOUND: ON]" : "[🔇 SOUND: OFF]";
+      document.body.classList.toggle('is-spinning', spinning);
+    }
+
+    function adjustBet(dir) {
+      if (spinning) return;
+      baseBet = Math.max(BET_MIN, Math.min(BET_MAX, baseBet + dir * BET_STEP));
+      updateUI();
+      playUiBlip(260 + dir * 40, "square", 0.06, 0.12);
+    }
+
+    function toggleLock(idx) {
+      if (spinning || !hasSpun || lockCooldown) return;
+
+      // If trying to ADD a lock while already at limit, refuse.
+      if (!locks[idx] && lockedCount() >= MAX_LOCKS) {
+        setMessage(`MAX ${MAX_LOCKS} LOCKS`, "#ff4444");
+        playUiBlip(140, "sawtooth", 0.10, 0.18);
+        kickSpeakers();
+        updateUI();
+        return;
+      }
+
+      locks[idx] = !locks[idx];
+      updateUI();
+      playUiBlip(locks[idx] ? 520 : 240, "triangle", 0.08, 0.14);
+    }
+
+    // --- AUDIO ENGINE (Web Audio API) ---
+    let audioCtx = null;
+    let spinInterval = null;
+
+    // --- MIXER (theme bus + sfx bus) ---
+    let __mix = {
+      ctx: null,
+      master: null,
+      theme: null,
+      sfx: null,
+      masterBase: 0.90, // overall output trim (avoid clipping)
+      themeBase: 0.60,  // theme loudness
+      sfxBase: 1.55     // UI / SFX loudness
+    };
+
+    function ensureMixer() {
+      const ctx = audioCtx || __seqCtx;
+      if (!ctx) return;
+
+      // Rebuild if context changed (shouldn't, but safe)
+      if (__mix.master && __mix.ctx === ctx) return;
+
+      __mix.ctx = ctx;
+      __mix.master = ctx.createGain();
+      __mix.theme = ctx.createGain();
+      __mix.sfx = ctx.createGain();
+
+      __mix.master.gain.value = __mix.masterBase;
+      __mix.theme.gain.value = __mix.themeBase;
+      __mix.sfx.gain.value = __mix.sfxBase;
+
+      __mix.theme.connect(__mix.master);
+      __mix.sfx.connect(__mix.master);
+      __mix.master.connect(ctx.destination);
+    }
+
+    function duckTheme(ms = 120, depth = 0.28) {
+      if (!audioEnabled) return;
+      if (!audioCtx) initAudio();
+      ensureMixer();
+      if (!__mix.theme) return;
+
+      const ctx = audioCtx || __mix.ctx;
+      const g = __mix.theme.gain;
+      const now = ctx.currentTime;
+      const base = __mix.themeBase;
+
+      const tDown = now + 0.003;
+      const tUp = now + ms / 1000;
+
+      g.cancelScheduledValues(now);
+      g.setValueAtTime(g.value, now);
+      g.linearRampToValueAtTime(base * depth, tDown);
+      g.linearRampToValueAtTime(base, tUp);
+    }
+
+    // UI blip that "pops" through the theme: quick duck + tiny click + tone
+    function playUiBlip(freq, type, duration, vol = 0.14) {
+      if (!audioEnabled) return;
+      if (!audioCtx) initAudio();
+      ensureMixer();
+
+      duckTheme(120, 0.28);
+
+      // tiny highpassed click transient to cut through hats/bass
+      const now = audioCtx.currentTime;
+      const sr = audioCtx.sampleRate;
+      const len = Math.max(1, Math.floor(sr * 0.012));
+      const buf = audioCtx.createBuffer(1, len, sr);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) {
+        const env = 1 - (i / len);
+        data[i] = (Math.random() * 2 - 1) * env;
+      }
+
+      const src = audioCtx.createBufferSource();
+      src.buffer = buf;
+
+      const hp = audioCtx.createBiquadFilter();
+      hp.type = "highpass";
+      hp.frequency.setValueAtTime(2800, now);
+
+      const cg = audioCtx.createGain();
+      cg.gain.setValueAtTime(0.0001, now);
+      cg.gain.linearRampToValueAtTime(Math.min(0.18, vol * 0.7), now + 0.001);
+      cg.gain.exponentialRampToValueAtTime(0.0001, now + 0.012);
+
+      src.connect(hp);
+      hp.connect(cg);
+      cg.connect(__mix.sfx || audioCtx.destination);
+
+      src.start(now);
+      src.stop(now + 0.02);
+
+      // actual tone (on top of click)
+      playToneRaw(freq, type, duration, vol);
+    }
+
+    // initialize audio
+    function initAudio() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === "suspended") {
+        audioCtx.resume().catch(() => {});
+      }
+      ensureMixer();
+    }
+
+    function toggleAudio() {
+      audioEnabled = !audioEnabled;
+
+      if (!audioEnabled) {
+        stopSpinMusic();
+        themeStopHard();
+      } else {
+        initAudio();
+        themeInterruptFor(50);
+      }
+
+      updateUI();
+    }
+
+    // --- MINI SEQ PLAYER (piano roll + noise) ---
+    // Uses global audioCtx if present.
+
+    let __seqCtx = null;
+    let __seqTimer = null;
+    let __seqState = {
+      playing: false, bpm: 120, bars: 1, stepsPerBar: 16,
+      step: 0, nextTime: 0, lookaheadMs: 25, scheduleAheadSec: 0.20, song: null
+    };
+
+    function __seqInitCtx() {
+      initAudio();
+      __seqCtx = audioCtx;
+      ensureMixer();
+    }
+
+    function __seqEnsure(){
+      if (!__seqCtx) __seqInitCtx();
+      if (__seqCtx && __seqCtx.state === "suspended") __seqCtx.resume().catch(() => {});
+    }
+
+    function __seqTotalSteps(){ return (__seqState.bars * __seqState.stepsPerBar); }
+    function __seqStepDur(){ return (60 / __seqState.bpm) / 4; }
+    function __seqMidiToFreq(m){ return 440 * Math.pow(2, (m - 69) / 12); }
+
+    function __seqPlayOsc(when, freq, wave, dur, vol){
+      const osc = __seqCtx.createOscillator();
+      const gain = __seqCtx.createGain();
+      osc.type = wave;
+      osc.frequency.setValueAtTime(freq, when);
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.linearRampToValueAtTime(vol, when + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + Math.max(0.02, dur));
+      osc.connect(gain); ensureMixer();
+      gain.connect((__mix && __mix.theme) ? __mix.theme : __seqCtx.destination);
+      osc.start(when); osc.stop(when + dur + 0.03);
+    }
+
+    function __seqPlayNoise(when, dur, vol){
+      const sr = __seqCtx.sampleRate;
+      const len = Math.max(1, Math.floor(sr * dur));
+      const buf = __seqCtx.createBuffer(1, len, sr);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1);
+
+      const src = __seqCtx.createBufferSource(); src.buffer = buf;
+      const hp = __seqCtx.createBiquadFilter(); hp.type = "highpass"; hp.frequency.setValueAtTime(2500, when);
+      const gain = __seqCtx.createGain();
+      gain.gain.setValueAtTime(0.0001, when);
+      gain.gain.linearRampToValueAtTime(vol, when + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, when + dur);
+
+      src.connect(hp); hp.connect(gain); ensureMixer();
+      gain.connect((__mix && __mix.theme) ? __mix.theme : __seqCtx.destination);
+      src.start(when); src.stop(when + dur + 0.03);
+    }
+
+    function __seqTick(){
+      if (!__seqState.playing || !__seqState.song) return;
+      const now = __seqCtx.currentTime;
+
+      while (now + __seqState.scheduleAheadSec >= __seqState.nextTime){
+        const si = __seqState.step;
+
+        for (const t of __seqState.song.tracks){
+          if (t.kind === "noise"){
+            if (t.steps && t.steps[si]) __seqPlayNoise(__seqState.nextTime, t.dur || 0.03, t.vol || 0.03);
+          } else if (t.kind === "osc"){
+            if (!t.notes) continue;
+            for (const n of t.notes){
+              if (n.step !== si) continue;
+              const midi = (n.midi | 0) + (t.transpose | 0);
+              const f = __seqMidiToFreq(midi);
+              const dur = Math.max(1, (n.len | 0)) * __seqStepDur();
+              const vel = Math.max(0.05, Math.min(1.0, Number(n.vel ?? 0.9)));
+              const vol = Math.max(0.0001, Math.min(0.35, Number(t.vol ?? 0.06) * vel));
+              const wave = (t.wave || "square");
+              __seqPlayOsc(__seqState.nextTime, f, wave, dur, vol);
+            }
+          }
+        }
+
+        __seqState.nextTime += __seqStepDur();
+        __seqState.step = (__seqState.step + 1) % __seqTotalSteps();
+      }
+    }
+
+    function seqPlay(song){
+      if (typeof audioEnabled !== "undefined" && !audioEnabled) return;
+      __seqEnsure();
+      __seqState.song = song;
+      __seqState.bpm = Math.max(40, Math.min(320, parseInt(song.bpm || 120, 10)));
+      __seqState.bars = Math.max(1, Math.min(16, parseInt(song.bars || 1, 10)));
+      __seqState.stepsPerBar = 16;
+      __seqState.step = 0;
+      __seqState.nextTime = __seqCtx.currentTime + 0.06;
+      __seqState.playing = true;
+      if (__seqTimer) clearInterval(__seqTimer);
+      __seqTimer = setInterval(__seqTick, __seqState.lookaheadMs);
+    }
+
+    function seqStop(){
+      __seqState.playing = false;
+      if (__seqTimer) clearInterval(__seqTimer);
+      __seqTimer = null;
+    }
+    // --- end mini seq player ---
+
+    let __jinglePlaying = false;
+
+    function seqDurationMs(song){
+      const bpm = Math.max(40, Math.min(320, parseInt(song.bpm || 120, 10)));
+      const bars = Math.max(1, Math.min(16, parseInt(song.bars || 1, 10)));
+      const stepsPerBar = 16;
+      const stepDur = (60 / bpm) / 4; // 16th steps
+      return Math.ceil(bars * stepsPerBar * stepDur * 1000);
+    }
+
+    function playLoseJingle(){
+      if (!audioEnabled) return;
+      if (__jinglePlaying) return;   // <-- add this
+
+      themeStopHard();
+      initAudio();
+
+      __jinglePlaying = true;
+      seqPlay(SEQ_LOSE);
+
+      const ms = seqDurationMs(SEQ_LOSE) + 80;
+      setTimeout(() => {
+        __jinglePlaying = false;
+        try { seqStop(); } catch {}
+
+        if (!audioEnabled) return;
+        if (spinning) return;
+        seqPlay(SEQ_THEME);
+      }, ms);
+    }
+
+    // --- THEME CONTROLLER: play theme only when idle; restart from start after any SFX ---
+    let __themeTimer = null;
+    let __themeBusyUntil = 0;
+
+    function themeStopHard(){
+      if (__themeTimer) clearTimeout(__themeTimer);
+      __themeTimer = null;
+      __themeBusyUntil = 0;
+      try { seqStop(); } catch {}
+    }
+
+    // Interrupt theme now, then restart from step 0 after ms (unless spinning)
+    function themeInterruptFor(ms){
+      if (!audioEnabled) return;
+
+      try { seqStop(); } catch {}
+
+      __themeBusyUntil = Math.max(__themeBusyUntil, performance.now() + ms);
+
+      if (__themeTimer) clearTimeout(__themeTimer);
+      __themeTimer = setTimeout(() => {
+        __themeTimer = null;
+        if (!audioEnabled) return;
+        if (spinning) return; // spin() restarts after results
+        initAudio();
+        seqPlay(SEQ_THEME);   // always starts from step 0
+      }, Math.max(0, __themeBusyUntil - performance.now()));
+    }
+
+    // Arm theme on any user gesture (browser autoplay rules)
+    // document.addEventListener("pointerdown", () => {
+    //   if (!audioEnabled) return;
+    //   initAudio();
+    //   themeInterruptFor(200);
+    // }, { passive: true });
+
+    // document.addEventListener("keydown", () => {
+    //   if (!audioEnabled) return;
+    //   initAudio();
+    //   themeInterruptFor(200);
+    // }, { passive: true });
+
+    // NEW listener
+    function themeEnsureStarted() {
+      if (!audioEnabled) return;
+      if (spinning) return;
+      if (__jinglePlaying) return;   // <--- ADD THIS
+      initAudio();
+
+      if (__seqState && __seqState.playing) return;
+      if (__themeTimer) return;
+
+      seqPlay(SEQ_THEME);
+    }
+
+    document.addEventListener("pointerdown", themeEnsureStarted, { passive: true });
+    document.addEventListener("keydown", themeEnsureStarted, { passive: true });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) themeStopHard();
+      else if (audioEnabled) themeInterruptFor(250);
+    });
+
+    // A raw tone player that doesn't interfere with the theme
+    function playToneRaw(freq, type, duration, vol = 0.10) {
+      if (!audioEnabled) return;
+      if (!audioCtx) initAudio();
+      if (!audioCtx) return;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = freq;
+
+      const now = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      osc.connect(gain);
+      ensureMixer();
+      gain.connect((__mix && __mix.sfx) ? __mix.sfx : audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.05);
+    }
+
+    // A generic beep function (Square wave for arcade feel)
+    function playTone(freq, type, duration, vol = 0.10) {
+      if (!audioEnabled) return;
+      if (!audioCtx) initAudio();
+      if (!audioCtx) return;
+
+      // Theme must NOT play during interaction SFX; restart from start after SFX ends.
+      // While spinning, we keep theme off and let spin() restart it after the result.
+      if (!spinning) themeInterruptFor(Math.ceil(duration * 1000) + 140);
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = freq;
+
+      const now = audioCtx.currentTime;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+      osc.connect(gain);
+      ensureMixer();
+      gain.connect((__mix && __mix.sfx) ? __mix.sfx : audioCtx.destination);
+
+      osc.start(now);
+      osc.stop(now + duration + 0.05);
+    }
+
+    // The "Driving" riff (fast pulses) while spinning
+    function startSpinMusic() {
+      // Always clear any old interval first (safety)
+      if (spinInterval) clearInterval(spinInterval);
+      spinInterval = null;
+
+      if (!audioEnabled) return;
+      if (!audioCtx) initAudio();
+      if (!audioCtx) return;
+
+      let noteIndex = 0;
+      const riff = [146.83, 164.81, 174.61, 196.00];
+
+      spinInterval = setInterval(() => {
+        // If spin ended or audio got muted, stop immediately
+        if (!spinning || !audioEnabled) {
+          stopSpinMusic();
+          return;
+        }
+        const pitch = riff[noteIndex % riff.length];
+        playToneRaw(pitch, "square", 0.08, 0.05); // RAW: no theme logic
+        noteIndex++;
+      }, 100);
+    }
+
+    function stopSpinMusic() {
+      if (spinInterval) clearInterval(spinInterval);
+      spinInterval = null;
+    }
+
+    // Arpeggio Win Sound (Coin Count Up Effect)
+    function playWinSound(isJackpot) {
+      if (!audioEnabled) return;
+      if (!audioCtx) initAudio();
+      if (!audioCtx) return;
+
+      const count = isJackpot ? 22 : 12;
+      const speed = isJackpot ? 70 : 95;
+
+      let notes = [329.63, 415.30, 493.88, 659.25];
+      if (isJackpot) notes = [329.63, 392.00, 493.88, 587.33, 659.25, 783.99];
+
+      for (let i = 0; i < count; i++) {
+        setTimeout(() => {
+          const octave = 1 + Math.floor(i / notes.length);
+          const note = notes[i % notes.length] * octave;
+          playTone(note, 'square', 0.10, isJackpot ? 0.22 : 0.18);
+        }, i * speed);
+      }
+    }
+
+    function kickSpeakers() {
+      els.spkL.classList.remove('shake');
+      els.spkR.classList.remove('shake');
+      void els.spkL.offsetWidth;
+      els.spkL.classList.add('shake');
+      els.spkR.classList.add('shake');
+    }
+
+    // --- GAME LOGIC ---
+
+    // Small reel-cycling for unlocked reels to make blur feel alive
+    const cycleTimers = [null, null, null];
+    function startReelCycle(i) {
+      if (cycleTimers[i]) clearInterval(cycleTimers[i]);
+      cycleTimers[i] = setInterval(() => {
+        reelEls[i].firstChild.textContent = randSymbol();
+      }, 70);
+    }
+    function stopReelCycle(i) {
+      if (cycleTimers[i]) clearInterval(cycleTimers[i]);
+      cycleTimers[i] = null;
+    }
+
+    function cueReadyFlash() {
+      // Brief "ready" pulse on the SPIN button after a spin completes.
+      // Lock buttons/reels are handled persistently in updateUI() when locks are available.
+      els.btn.classList.add('pulse');
+      window.setTimeout(() => {
+        els.btn.classList.remove('pulse');
+      }, 1200);
+    }
+
+    function spin() {
+
+      if (spinning) return;
+
+      themeStopHard();          // stop theme for the whole spin
+      stopSpinMusic();          // safety (in case something was left running)
+
+      // Ensure audio context is live on user click
+      if (audioEnabled && audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+      if (audioEnabled && !audioCtx) initAudio();
+
+      // Snapshot locks for THIS spin, then consume them immediately.
+      const held = locks.slice();
+      let usedLocks = held.some(Boolean);
+
+      // Rule 1: no locks on first spin. Rule 2: after a locked spin, next spin must be clean.
+      if (!hasSpun || lockCooldown) {
+        held[0] = held[1] = held[2] = false;
+        usedLocks = false;
+      }
+
+      // Remember which reels are held for this spin so the LOCKED tag stays on during the animation
+      spinHeld = held.slice();
+
+      // Consume locks immediately after SPIN is pressed (prevents carry-over)
+      locks[0] = locks[1] = locks[2] = false;
+
+      const lockCount = held.reduce((a, x) => a + (x ? 1 : 0), 0);
+      const mult = 2 ** lockCount;
+      const cost = baseBet * mult;
+
+      if (credits < cost) {
+        if (credits < BET_MIN) {
+          setMessage("OUT OF CREDITS — INSERT COIN", "#ff4444");
+          playLoseJingle();
+          updateUI(); // <-- IMPORTANT: reveal the insert panel
+          return;
+        }
+
+        setMessage("NO CREDITS!", "#ff4444");
+        playTone(90, "sawtooth", 0.45, 0.22);
+        kickSpeakers();
+        updateUI();
+        return;
+      }
+
+      credits -= cost;
+      netWins -= cost;
+      updateUI();
+
+      spinning = true;
+      updateUI();
+
+      setMessage("SPINNING...", "#fff");
+      els.machine.classList.remove('shake');
+      document.querySelectorAll('.reel').forEach(r => {
+        r.classList.remove('win-flash');
+      });
+
+      // Start the riff
+      startSpinMusic();
+
+      // Pre-roll: blur only unlocked reels
+      for (let i = 0; i < 3; i++) {
+        if (!held[i]) {
+          reelEls[i].classList.add('blur-spin');
+          startReelCycle(i);
+        } else {
+          reelEls[i].classList.remove('blur-spin');
+          stopReelCycle(i);
+        }
+      }
+
+      // Determine results (locked reels hold current)
+      const res = [
+        held[0] ? current[0] : randSymbol(),
+        held[1] ? current[1] : randSymbol(),
+        held[2] ? current[2] : randSymbol(),
+      ];
+
+      // Which reels are actually moving this spin?
+      const STOP_CADENCE = [600, 1200, 1800]; // 1st/2nd/3rd *moving* reel stop times
+      const moving = [];
+      for (let i = 0; i < 3; i++) if (!held[i]) moving.push(i);
+
+      const firstMovingIdx = moving[0] ?? null;
+
+      function stopVisual(i) {
+        stopReelCycle(i);
+        reelEls[i].classList.remove("blur-spin");
+        reelEls[i].firstChild.textContent = res[i];
+      }
+
+      function stopTone(stage, idx) {
+        const isLast = (stage === moving.length - 1);
+
+        // Make the *last* stop always feel like "STOP 3" (even if reel3 was held)
+        if (isLast) {
+          playTone(659.25, "triangle", 0.28, 0.22);
+          return;
+        }
+
+        if (stage === 0) {
+          playTone(329.63, "triangle", 0.22, 0.22);
+          return;
+        }
+
+        if (stage === 1) {
+          const a = (firstMovingIdx != null) ? res[firstMovingIdx] : res[idx];
+          const match = (res[idx] === a);
+          playTone(493.88, match ? "square" : "triangle", 0.22, match ? 0.16 : 0.20);
+          return;
+        }
+
+        playTone(493.88, "triangle", 0.22, 0.20);
+      }
+
+      function finishSpin() {
+        current = res.slice();
+
+        // mark spin done BEFORE checkWin
+        spinning = false;
+        tripleWinThisSpin = false;
+
+        const outcome = checkWin(res, cost);
+
+        // play sting ONLY if this was a lock-spin and you lost it
+        if (outcome === "LOSS" && usedLocks) {
+          playLoseJingle();
+        }
+
+        hasSpun = true;
+        lockCooldown = (usedLocks || tripleWinThisSpin);
+
+        // Clear "held" visuals
+        spinHeld = [false, false, false];
+
+        updateUI();
+
+        // LOSS messaging
+        if (outcome === "LOSS") {
+          if (credits < BET_MIN) {
+            setMessage("OUT OF CREDITS — INSERT COIN", "#ff4444");
+            playLoseJingle();
+          } else if (credits < baseBet) {
+            setMessage("NOT ENOUGH CREDITS!", "#ff4444");
+          } else if (!lockCooldown && hasSpun) {
+            setMessage("DOUBLE STAKES OR QUIT", "var(--highlight)");
+          } else {
+            setMessage("BORN TO LOSE, PLAY TO WIN. ANOTHER SPIN?", "#888");
+          }
+        }
+
+        cueReadyFlash();
+      }
+
+      // Safety (shouldn't happen with MAX_LOCKS=2, but keep it robust)
+      if (moving.length === 0) {
+        stopSpinMusic();
+        requestAnimationFrame(finishSpin);
+        return;
+      }
+
+      // Schedule stops for *moving* reels only, and finish on the last moving reel.
+      moving.forEach((idx, stage) => {
+        const t = STOP_CADENCE[stage] ?? STOP_CADENCE[STOP_CADENCE.length - 1];
+
+        setTimeout(() => {
+          // last moving reel => stop riff right before the final reveal
+          if (stage === moving.length - 1) stopSpinMusic();
+
+          stopVisual(idx);
+          stopTone(stage, idx);
+
+          if (stage === moving.length - 1) {
+            // Let the DOM paint the final stop, then score it.
+            requestAnimationFrame(finishSpin);
+          }
+        }, t);
+      });
+
+    }
+
+    /* cashout functionality */
+    function cashOut(){
+      if (spinning || gameOver) return;
+      if (netWins <= 0) return;
+
+      bank += (netWins | 0);
+
+      // reset run
+      credits = 100;
+      netWins = 0;
+      hasSpun = false;
+      lockCooldown = false;
+      spinHeld = [false,false,false];
+      locks[0] = locks[1] = locks[2] = false;
+
+      setMessage(`CASHED OUT — BANK: ${bank}`, "gold");
+      playUiBlip(880, "square", 0.08, 0.16);
+      updateUI();
+    }
+
+    els.cashoutBtn.addEventListener("click", cashOut);
+
+    /* new version (returns outcome; no premature "LOSE.") */
+    function checkWin(r, cost) {
+      const [s1, s2, s3] = r;
+
+      // JACKPOT: 3 ACES
+      if (s1 === '♠️' && s2 === '♠️' && s3 === '♠️') {
+        tripleWinThisSpin = true;
+        const win = cost * PAY.JACKPOT_ACES;
+        credits += win;
+        netWins += win;
+        setMessage("⚡ ACE OF SPADES! ⚡", "gold");
+        triggerBigWinEffect();
+        playWinSound(true);
+        updateUI();
+        return "JACKPOT";
+      }
+
+      // EXTRA: 3 SEVENS
+      if (s1 === '7️⃣' && s2 === '7️⃣' && s3 === '7️⃣') {
+        tripleWinThisSpin = true;
+        const win = cost * PAY.TRIPLE_7;
+        credits += win;
+        netWins += win;
+        setMessage(`LUCKY SEVENS! +${win}`, "gold");
+        flashReels();
+        triggerBigWinEffect(1200);     // <-- add this (or 1200 if you want less)        
+        playWinSound(false);
+        kickSpeakers();
+        updateUI();
+        return "WIN";
+      }
+
+      // 3 OF A KIND (any)
+      if (s1 === s2 && s2 === s3) {
+        tripleWinThisSpin = true;
+        const win = cost * PAY.TRIPLE_ANY;
+        credits += win;
+        netWins += win;
+        setMessage(`TRIPLE ${getSymbolName(s1)}! +${win}`, "#fff");
+        flashReels();
+        triggerBigWinEffect(1000);     // <-- add this
+        playWinSound(false);
+        kickSpeakers();
+        updateUI();
+        return "WIN";
+      }
+
+      // 2 ACES (any position)
+      const aceCount = (s1 === '♠️') + (s2 === '♠️') + (s3 === '♠️');
+      if (aceCount === 2) {
+        const win = cost * PAY.DOUBLE_ACES;
+        credits += win;
+        netWins += win;
+        setMessage(`DOUBLE ACES +${win}`, "#ccc");
+        triggerSmallWinEffect(650);
+        playTone(880, "square", 0.10, 0.10);
+        setTimeout(() => playTone(1100, "square", 0.18, 0.10), 110);
+        kickSpeakers();
+        updateUI();
+        return "WIN";
+      }
+
+      // EXTRA: 2 SEVENS
+      const sevenCount = (s1 === '7️⃣') + (s2 === '7️⃣') + (s3 === '7️⃣');
+      if (sevenCount === 2) {
+        const win = cost * PAY.DOUBLE_7;
+        credits += win;
+        netWins += win;
+        setMessage(`DOUBLE 7S +${win}`, "#ddd");
+        triggerSmallWinEffect(650);
+        playTone(740, "square", 0.10, 0.10);
+        setTimeout(() => playTone(988, "square", 0.16, 0.10), 120);
+        kickSpeakers();
+        updateUI();
+        return "WIN";
+      }
+
+      // LOSS (message is decided AFTER cooldown/lock-availability is computed)
+      playTone(110, 'sawtooth', 0.25, 0.14);
+      return "LOSS";
+    }
+
+    function triggerSmallWinEffect(ms = 650){
+      // retrigger-safe
+      document.body.classList.remove("spade-pop");
+      void document.body.offsetWidth;
+      document.body.classList.add("spade-pop");
+
+      clearTimeout(__spadePopTimer);
+      __spadePopTimer = setTimeout(() => {
+        document.body.classList.remove("spade-pop");
+      }, ms);
+    }
+
+    function triggerBigWinEffect(ms = 2500) {
+      // spade haywire (retrigger-safe)
+      document.body.classList.add('spade-mad');
+      clearTimeout(__spadeMadTimer);
+      __spadeMadTimer = setTimeout(() => {
+        document.body.classList.remove('spade-mad');
+      }, ms);
+
+      // machine + reels
+      els.machine.classList.add('shake');
+      document.querySelectorAll('.reel').forEach(el => el.classList.add('win-flash'));
+      kickSpeakers();
+
+      setTimeout(() => {
+        els.machine.classList.remove('shake');
+        document.querySelectorAll('.reel').forEach(el => el.classList.remove('win-flash'));
+      }, ms);
+    }
+
+    // function triggerBigWinEffect() {
+    //   document.body.classList.add('spade-mad');
+
+    //   els.machine.classList.add('shake');
+    //   document.querySelectorAll('.reel').forEach(el => el.classList.add('win-flash'));
+    //   kickSpeakers();
+
+    //   setTimeout(() => {
+    //     document.body.classList.remove('spade-mad');
+
+    //     els.machine.classList.remove('shake');
+    //     document.querySelectorAll('.reel').forEach(el => el.classList.remove('win-flash'));
+    //   }, 2500);
+    // }
+
+    function flashReels() {
+      document.querySelectorAll('.reel').forEach(el => el.classList.add('win-flash'));
+      setTimeout(() => document.querySelectorAll('.reel').forEach(el => el.classList.remove('win-flash')), 900);
+    }
+
+    function getSymbolName(symbol) {
+      if (symbol === '💀') return "SKULLS";
+      if (symbol === '🎸') return "GUITARS";
+      if (symbol === '🥃') return "WHISKEY";
+      if (symbol === '🎲') return "DICE";
+      if (symbol === '7️⃣') return "SEVENS";
+      return "MATCH";
+    }
+
+    // Wire controls
+    els.betUp.addEventListener('click', () => adjustBet(+1));
+    els.betDown.addEventListener('click', () => adjustBet(-1));
+
+    els.lock1.addEventListener('click', () => toggleLock(0));
+    els.lock2.addEventListener('click', () => toggleLock(1));
+    els.lock3.addEventListener('click', () => toggleLock(2));
+
+    // Coin button: toggle the INSERT COIN panel (pin/unpin)
+    els.coinBtn.addEventListener('click', () => {
+      coinPanelPinned = !coinPanelPinned;
+      updateUI();
+      playUiBlip(720, "square", 0.07, 0.14);
+    });
+
+    // INSERT COIN buttons
+    els.creditInsert.querySelectorAll('.insert-btn').forEach(btn => {
+      btn.addEventListener('click', () => addCredits(parseInt(btn.dataset.add, 10)));
+    });
+
+    // Keyboard: Space spins, +/- changes bet, 1/2/3 toggles locks, M toggles audio, C adds credits
+    window.addEventListener('keydown', (e) => {
+      if (e.repeat) return;
+      const k = e.key;
+
+      if (k === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        spin();
+      } else if (k === '+' || k === '=') {
+        adjustBet(+1);
+      } else if (k === '-' || k === '_') {
+        adjustBet(-1);
+      } else if (k === '1') {
+        toggleLock(0);
+      } else if (k === '2') {
+        toggleLock(1);
+      } else if (k === '3') {
+        toggleLock(2);
+      } else if (k.toLowerCase() === 'm') {
+        toggleAudio();
+      } else if (k.toLowerCase() === 'c') {
+        addCredits(100);
+      }
+    }, { passive: false });
+
+    // Init reels (ensure firstChild is the symbol text node)
+    function normalizeReels() {
+      for (const r of reelEls) {
+        // Ensure the symbol is a text node at firstChild
+        // (HTML has "♠️" followed by <span>, so firstChild is the text node)
+        if (!r.firstChild || r.firstChild.nodeType !== Node.TEXT_NODE) {
+          r.insertBefore(document.createTextNode('♠️'), r.firstChild);
+        }
+      }
+      current = [reelEls[0].firstChild.textContent.trim(), reelEls[1].firstChild.textContent.trim(), reelEls[2].firstChild.textContent.trim()];
+    }
+
+    function buildTitleMarquee() {
+      const title = document.getElementById('title');
+      if (!title || title.dataset.built === '1') return;
+
+      const raw = title.textContent;
+      title.textContent = '';
+
+      // Wrap each character in a span with an index variable for animation staggering
+      let idx = 0;
+      for (const ch of raw) {
+        const span = document.createElement('span');
+        span.className = 'title-letter';
+        span.style.setProperty('--i', idx);
+        // Keep spaces visible for layout
+        span.textContent = (ch === ' ') ? ' ' : ch;
+        title.appendChild(span);
+        idx++;
+      }
+
+      title.dataset.built = '1';
+    }
+
+    normalizeReels();
+    buildTitleMarquee();
+    updateUI();
+  </script>
+</body>
+</html>
