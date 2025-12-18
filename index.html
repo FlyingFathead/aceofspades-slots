@@ -1812,6 +1812,27 @@
     }
   }
 
+  /* keep 💰 + 💸 glued together */
+  .money-actions{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 6px;
+  }
+
+  /* your .coin-btn has margin-left:10px; kill that inside the group */
+  .money-actions .coin-btn{ margin-left: 0; }
+
+  /* optional: make disabled state look consistent */
+  .coin-btn:disabled{
+    opacity: 0.35;
+    cursor: not-allowed;
+  }
+  .coin-btn:disabled:active{
+    transform: none;
+    box-shadow: 0 3px 0 rgba(0,0,0,0.55);
+  }
+
   </style>
 </head>
 <body>
@@ -1887,9 +1908,13 @@
     <div class="ui-panel">
 
         <div class="readout-stack" aria-label="Credits and net wins">
-          <div class="line">
+          <div class="line money-line">
             CREDITS: <span id="credits">100</span>
-            <button class="coin-btn" id="coin-btn" type="button" title="Insert coin">💰</button>
+
+            <span class="money-actions">
+              <button class="coin-btn" id="coin-btn" type="button" title="Insert coin">💰</button>
+              <button class="coin-btn cashout-btn" id="cashout-btn" type="button" title="Cash out">💸</button>
+            </span>
           </div>
 
           <div class="wins-line" id="wins-row">
@@ -1899,7 +1924,6 @@
           <div class="wins-line" id="bank-row">
             BANK: <span id="bank">0</span>
           </div>
-          <button id="cashout-btn" type="button" class="mini-btn">💸</button>
 
         </div>
       
