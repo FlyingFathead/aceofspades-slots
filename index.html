@@ -54,19 +54,11 @@
       --logo-spade-y: -40%;      
     }
 
-    /* Twemoji images: behave like font emoji */
+    /* Twemoji: treat it as a pure box, no baseline math */
     img.emoji{
-      width: 1em;
-      height: 1em;
-      vertical-align: -0.12em;
-    }
-
-    /* Make Twemoji behave like a centered icon, not baseline text */
-    img.emoji{
-      width: 1em;
-      height: 1em;
-      display: block;          /* kills baseline weirdness */
-      vertical-align: middle;  /* mostly irrelevant once display:block, but fine */
+      display: block;
+      width: 100%;
+      height: 100%;
     }
 
     /* Reels: center the symbol box perfectly */
@@ -488,6 +480,36 @@
     }
 
     /* --- VEGAS HEADER (message + meta above reels) --- */
+
+        /* FIX: spin-splash must NEVER affect header height */
+    .machine-header{ position: relative; }
+
+    /* belt + suspenders: remove from flow when not spinning */
+    body:not(.is-spinning) .machine-header .spin-splash{
+      display: none !important;
+    }
+
+    /* during spin: overlay it */
+    body.is-spinning .machine-header .spin-splash{
+      display: flex !important;
+    }
+
+    .machine-header .spin-splash{
+      position: absolute !important;
+      inset: 0 !important;
+      margin: 0 !important;
+      padding: 14px 12px;         /* keep your look */
+      z-index: 3;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    /* optional: tighten header a bit (pure compacting) */
+    .machine-header{ padding: 6px 12px 6px; }
+    #message{ min-height: 0; line-height: 1.05; }
+    .meta{ margin-top: 2px; line-height: 1.15; }
+
     .machine-header{
       margin: 8px 0 12px;
       padding: 10px 12px 8px;
@@ -539,6 +561,136 @@
   .machine-header::after{
     bottom: 6px;
     animation: spade-strip-rev 2.8s linear infinite;
+  }
+
+  /* --- SPIN SPLASH OVERLAY (flaming shout during spin) --- */
+  .spin-splash{
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 12px;
+    pointer-events: none;
+
+    opacity: 0;
+    transform: scale(0.985);
+    transition: opacity 0.12s ease, transform 0.12s ease;
+  }
+
+  /* During spin: show splash, hide everything else in header */
+  body.is-spinning .spin-splash{
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  body.is-spinning .machine-header #message,
+  body.is-spinning .machine-header .meta{
+    opacity: 0;
+  }
+
+  /* Kill the A♠ marquee strips during spin */
+  body.is-spinning .machine-header::before,
+  body.is-spinning .machine-header::after{
+    opacity: 0;
+    filter: none;
+  }
+
+  /* Optional: also hide strips on the “what’s next” screens you mentioned */
+  body.header-next .machine-header::before,
+  body.header-next .machine-header::after{
+    opacity: 0;
+  }
+
+  /* --- FLAME TEXT --- */
+  .flame-text{
+    position: relative;
+    font-family: "Metal Mania", cursive;
+    font-size: clamp(1.75rem, 5vw, 2.7rem);
+    letter-spacing: 2px;
+    line-height: 1;
+    text-align: center;
+
+    color: rgba(255, 242, 190, 0.92);
+
+    /* “hot metal” base glow */
+    text-shadow:
+      0 0 2px  rgba(0,0,0,0.90),
+      0 0 10px rgba(255,215,0,0.28),
+      0 0 18px rgba(255,120,0,0.26),
+      0 0 28px rgba(255, 30,0,0.14);
+
+    filter: drop-shadow(0 0 10px rgba(255,120,0,0.18));
+    animation: flameJitter 0.10s steps(2, end) infinite;
+    transform: translateZ(0);
+    will-change: transform, filter, text-shadow;
+  }
+
+  /* The “flame” gradient moving through the text */
+  .flame-text::before{
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+
+    color: transparent;
+    background-image: linear-gradient(
+      0deg,
+      rgba(255,  20,  0, 0.95) 0%,
+      rgba(255, 110, 0, 0.95) 25%,
+      rgba(255, 215, 0, 0.92) 55%,
+      rgba(255, 255, 255, 0.70) 75%,
+      rgba(255, 215, 0, 0.88) 100%
+    );
+    background-size: 180% 260%;
+    background-position: 50% 100%;
+
+    -webkit-background-clip: text;
+    background-clip: text;
+
+    filter:
+      blur(0.6px)
+      drop-shadow(0 0 10px rgba(255, 90, 0, 0.40))
+      drop-shadow(0 0 22px rgba(255, 30, 0, 0.22));
+
+    mix-blend-mode: screen;
+    animation: flameRise 0.55s linear infinite;
+    will-change: background-position, filter;
+  }
+
+  /* Big soft ember halo */
+  .flame-text::after{
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    z-index: -2;
+
+    color: rgba(255, 70, 0, 0.70);
+    filter: blur(14px);
+    opacity: 0.55;
+
+    animation: flameFlicker 0.12s steps(2, end) infinite;
+    will-change: opacity, transform;
+  }
+
+  @keyframes flameRise{
+    0%   { background-position: 50% 110%; }
+    100% { background-position: 50% -30%; }
+  }
+
+  @keyframes flameFlicker{
+    0%   { opacity: 0.45; transform: translate(0,0) scale(1.00); }
+    50%  { opacity: 0.72; transform: translate(1px,-1px) scale(1.02); }
+    100% { opacity: 0.50; transform: translate(-1px,1px) scale(0.99); }
+  }
+
+  @keyframes flameJitter{
+    0%   { transform: translate(0,0) rotate(0deg) scale(1.00); filter: brightness(1.00); }
+    25%  { transform: translate(1px,-1px) rotate(-1deg) scale(1.02); filter: brightness(1.10); }
+    50%  { transform: translate(-1px,1px) rotate(1deg) scale(0.99); filter: brightness(0.98); }
+    75%  { transform: translate(1px,1px) rotate(-1deg) scale(1.01); filter: brightness(1.08); }
+    100% { transform: translate(0,0) rotate(0deg) scale(1.00); filter: brightness(1.00); }
   }
 
   @keyframes spade-strip{
@@ -1312,6 +1464,11 @@
 
     <!-- NEW: Vegas-style header (message + bet/meta) -->
     <div class="machine-header" aria-label="Machine status">
+
+      <div class="spin-splash" id="spin-splash" aria-hidden="true">
+        <div class="flame-text" id="spin-splash-text" data-text="ROCK AND ROLL!">ROCK AND ROLL!</div>
+      </div>
+
       <div id="message">CLICK SPIN TO START</div>
       <div class="meta">LOCKS DOUBLE YOUR BET (x2 PER LOCK)<br>MAX 2 LOCKS | TOTAL: <span id="totalbet">10</span> (x<span id="mult">1</span>)</div>
     </div>
