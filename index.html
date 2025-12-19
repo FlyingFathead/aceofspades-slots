@@ -55,11 +55,13 @@
       --reel-emoji-nudge: 0.06em;          
     }
 
-    /* Twemoji: treat it as a pure box, no baseline math */
+    /* Twemoji everywhere: behave like a font glyph */
     img.emoji{
-      display: block;
-      width: 100%;
-      height: 100%;
+      width: 1em;
+      height: 1em;
+      display: inline-block;
+      vertical-align: -0.12em;  /* tweak if needed */
+      margin: 0;
     }
 
     /* Make the reel symbol a strict 1em x 1em box */
@@ -79,8 +81,8 @@
       display: block;
       width: 100% !important;
       height: 100% !important;
-
-      /* kill Twemoji’s default spacing + baseline offset */
+      max-width: none !important;
+      max-height: none !important;
       margin: 0 !important;
       vertical-align: 0 !important;
     }
@@ -90,6 +92,14 @@
       cursor: pointer;
       touch-action: manipulation;
       -webkit-tap-highlight-color: transparent;
+    }
+
+    .reel .sym{ --baseY: var(--reel-emoji-nudge); transform: translateY(var(--baseY)); }
+
+    @keyframes blurText {
+      0%   { transform: translateY(calc(var(--baseY) - 5px)) scaleY(1.1); }
+      50%  { transform: translateY(calc(var(--baseY) + 5px)) scaleY(0.9); }
+      100% { transform: translateY(calc(var(--baseY) - 5px)) scaleY(1.1); }
     }
 
     /* If you want it *pixel-perfect* across engines, you can micro-nudge: */
@@ -896,10 +906,17 @@
     }
 
     /* Spin Blur Animation */
-    .blur-spin {
-      animation: blurText 0.08s infinite;
+    /* CHROME FIX: don't transform the whole .reel (gets clipped by .reels-container overflow:hidden) */
+    .blur-spin{
+      animation: none !important;           /* kill the reel-box transform */
       color: transparent;
       text-shadow: 0 0 8px rgba(0,0,0,0.8);
+    }
+
+    /* animate the symbol itself instead */
+    .reel.blur-spin .sym{
+      animation: blurText 0.08s infinite;
+      will-change: transform;
     }
 
     @keyframes blurText {
@@ -959,7 +976,14 @@
 
     /* map your existing 3 children to grid areas */
     .readout-stack{ grid-area: left; }
-    #spin-btn{ grid-area: spin; justify-self: center; }
+    .spin-actions{
+        grid-area: spin;
+        justify-self: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
     .bet-controls{ grid-area: bet; justify-self: end; }
 
     /* MOBILE: SPIN on top, then 50/50 left(readouts) + right(bet) */
@@ -1660,6 +1684,16 @@
     .meta-rotator .meta-line{
       line-height: 1.05;
     }
+
+    .spin-actions{
+      align-self: start;
+      margin-top: -6px; /* keep your current "ok" SPIN height */
+    }
+    .spin-actions .coin-btn{
+      width: 38px;
+      height: 38px;
+    }
+
   }
 
   /* Short height (phone landscape / 16:10-ish): make it properly tight */
@@ -1833,6 +1867,48 @@
     box-shadow: 0 3px 0 rgba(0,0,0,0.55);
   }
 
+  /* coin buttons next to SPIN (no left-margin hack) */
+  .spin-actions .coin-btn{ margin-left: 0 !important; }
+
+  /* make them feel like real side-buttons */
+  .spin-actions .coin-btn{
+    width: 42px;
+    height: 42px;
+    font-size: 1.15rem;
+    border-radius: 10px;
+  }
+
+  /* =========================
+    DESKTOP: de-crowd SPIN row
+    ========================= */
+  @media (min-width: 561px){
+    /* tighten the whole control bar a bit */
+    .ui-panel{
+      padding: 12px;     /* was 14px */
+      gap: 8px;          /* was 10px */
+    }
+
+    /* side buttons around SPIN: smaller + closer */
+    .spin-actions{
+      gap: 8px;          /* was 10px */
+    }
+    .spin-actions .coin-btn{
+      width: 34px;
+      height: 34px;
+      font-size: 1.0rem;
+      border-radius: 9px;
+    }
+
+    /* SPIN: slightly narrower so it breathes */
+    button#spin-btn{
+      padding: 10px 30px;  /* was 10px 40px */
+      font-size: 1.7rem;   /* was 1.8rem */
+    }
+
+    /* bet cluster: slightly tighter */
+    .bet-controls{ gap: 6px; }  /* was 8px */
+  }
+
   </style>
 </head>
 <body>
@@ -1910,11 +1986,6 @@
         <div class="readout-stack" aria-label="Credits and net wins">
           <div class="line money-line">
             CREDITS: <span id="credits">100</span>
-
-            <span class="money-actions">
-              <button class="coin-btn" id="coin-btn" type="button" title="Insert coin">💰</button>
-              <button class="coin-btn cashout-btn" id="cashout-btn" type="button" title="Cash out">💸</button>
-            </span>
           </div>
 
           <div class="wins-line" id="wins-row">
@@ -1927,7 +1998,11 @@
 
         </div>
       
-      <button id="spin-btn" onclick="spin()">SPIN</button>
+      <div class="spin-actions" aria-label="Spin and money actions">
+        <button class="coin-btn" id="coin-btn" type="button" title="Insert coin">💰</button>
+        <button id="spin-btn" onclick="spin()">SPIN</button>
+        <button class="coin-btn cashout-btn" id="cashout-btn" type="button" title="Cash out">💸</button>
+      </div>
 
       <div class="bet-controls">
         <button class="mini-btn" id="bet-down" type="button" aria-label="Bet down">-</button>
