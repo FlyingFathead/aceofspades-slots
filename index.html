@@ -105,6 +105,11 @@
     /* If you want it *pixel-perfect* across engines, you can micro-nudge: */
     /* .reel .sym { transform: translateY(0.02em); } */
 
+    html, body{
+      height: 100%;
+      overscroll-behavior: none;
+    }
+
     body {
       background-color: var(--metal-black);
       /* Subtle vignette + haze (the "room" behind the machine) */
@@ -117,7 +122,9 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
+      /* height: 100vh; */
+      min-height: 100vh;   /* fallback */
+      height: 100svh;      /* stable on mobile (prevents address-bar jitter) */
       margin: 0;
       overflow: hidden;
       text-transform: uppercase;
@@ -2081,11 +2088,22 @@
     let current = ['♠️', '♠️', '♠️'];
 
     // emoji loader
+    // const TWEMOJI_OPTS = {
+    //   folder: "svg",
+    //   ext: ".svg",
+    //   callback: (icon, options) =>
+    //     `https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/svg/${icon}${options.ext}`
+    // };
+
+    // const TWEMOJI_OPTS = {
+    //   base: "https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/",
+    //   folder: "svg",
+    //   ext: ".svg"
+    // };
+
     const TWEMOJI_OPTS = {
-      folder: "svg",
-      ext: ".svg",
-      callback: (icon, options) =>
-        `https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/svg/${icon}${options.ext}`
+      callback: (icon) =>
+        `https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/svg/${icon}.svg`
     };
 
     /* --- THEME MUSIC ---*/
