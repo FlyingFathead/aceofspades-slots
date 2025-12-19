@@ -2510,16 +2510,28 @@
     function updateInterestBar(symbols = current){
       if (!__interestEls.length) return;
 
-      // Don't chase the blur-cycle — just clear reel highlights while spinning
+      // NEVER show rays while the reels are rolling
       if (spinning){
         reelEls.forEach(r => r.classList.remove("interest-hit"));
+
+        for (const el of __interestEls){
+          el.classList.remove("active");
+          const cEl = el.querySelector(".ii-count");
+          if (cEl) cEl.textContent = "×0";
+        }
         return;
       }
 
+      // Count visible symbols on the reels
       const counts = Object.create(null);
       for (const it of INTEREST_ITEMS) counts[it.sym] = 0;
-      for (const s of symbols) if (counts[s] != null) counts[s]++;
 
+      for (let i = 0; i < 3; i++){
+        const s = symbols[i];
+        if (counts[s] != null) counts[s]++;
+      }
+
+      // Interest pills: active if that symbol is present on the reels
       for (const el of __interestEls){
         const sym = el.dataset.sym;
         const c = counts[sym] || 0;
@@ -2528,6 +2540,7 @@
         if (cEl) cEl.textContent = `×${c}`;
       }
 
+      // Reel rays: show if the reel displays ♠️ or 7️⃣
       for (let i = 0; i < 3; i++){
         reelEls[i].classList.toggle("interest-hit", INTEREST_SET.has(symbols[i]));
       }
