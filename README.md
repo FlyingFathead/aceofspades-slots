@@ -1,5 +1,7 @@
 # Ace of Spades Web Slots
 
+![Ace of Spades Slots](og.png)
+
 A tiny, loud, in-browser slot machine themed around "Ace of Spades" energy (a tribute to Lemmy) -- reel locks, double-stakes, jackpots, and simple chiptune beep-riffs. It’s (hopefully) a fun little mini-game.
 
 Play: https://flyingfathead.github.io/aceofspades-slots/
