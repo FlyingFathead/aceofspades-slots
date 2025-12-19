@@ -2069,6 +2069,19 @@
     animation: raySpin 1.7s linear infinite;
   }
 
+  /* PRE-SPIN: nuke the interest-bar ray immediately */
+  .interest-bar.ray-hidden::before,
+  .interest-bar.ray-hidden::after,
+  .interest-bar.ray-hidden .ray,
+  .interest-bar.ray-hidden .rayline,
+  .interest-bar.ray-hidden .ray-beam {
+    opacity: 0 !important;
+    animation: none !important;
+    transform: none !important;
+    filter: none !important;
+    pointer-events: none !important;
+  }
+
   /* =========================================
     LOCK BUTTON: HARD 2-COLOR BLINK (before locking)
     ========================================= */
@@ -2165,8 +2178,7 @@
       <div class="reel" id="reel3">♠️<span class="lock-pill">LOCKED</span></div>
     </div>
 
-    <div class="interest-bar" aria-label="Items of interest">
-      <!-- <div class="interest-title">ITEMS OF INTEREST</div> -->
+    <div class="interest-bar" id="interest-bar" aria-label="Items of interest">
       <div class="interest-list" id="interest-list"></div>
     </div>
 
