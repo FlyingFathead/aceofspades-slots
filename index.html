@@ -655,7 +655,13 @@
     transform: scale(1);
   }
 
-  body.is-spinning .machine-header #message,
+  /* body.is-spinning .machine-header #message,
+  body.is-spinning .machine-header .meta{
+    opacity: 0;
+  } */
+
+  /* hide message during spin EXCEPT when it's the Joker alert */
+  body.is-spinning .machine-header #message:not(.joker-alert),
   body.is-spinning .machine-header .meta{
     opacity: 0;
   }
@@ -1181,6 +1187,42 @@
       font-weight: bold;
     } */
 
+    /* JOKER banner */
+    /* #jokerBanner{
+      position: fixed;
+      left: 50%;
+      top: 12%;
+      transform: translateX(-50%) scale(0.9);
+      z-index: 9999;
+      padding: 14px 22px;
+      border-radius: 14px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+
+      opacity: 0;
+      pointer-events: none;
+
+      color: #fff;
+      background: rgba(0,0,0,0.85);
+      box-shadow: 0 10px 40px rgba(0,0,0,0.55);
+    } */
+
+    /* #jokerBanner.show{
+      opacity: 1;
+      animation: jokerFlash 0.85s ease-in-out both;
+    }
+
+    @keyframes jokerFlash{
+      0%   { transform: translateX(-50%) scale(0.6) rotate(-2deg); filter: blur(1px); }
+      15%  { transform: translateX(-50%) scale(1.15) rotate( 2deg); filter: blur(0px); }
+      30%  { transform: translateX(-50%) scale(1.05) rotate(-1deg); }
+      45%  { transform: translateX(-50%) scale(1.18) rotate( 1deg); }
+      60%  { transform: translateX(-50%) scale(1.02) rotate( 0deg); }
+      80%  { opacity: 1; }
+      100% { opacity: 0; transform: translateX(-50%) scale(0.95); }
+    } */
+
     /* UPDATED message styling (same colors, more neon/vegas) */
     #message{
       margin: 0;
@@ -1238,7 +1280,6 @@
       }
     }
 
-
     @keyframes stakesTextGlow{
       0%, 100%{
         text-shadow:
@@ -1292,6 +1333,54 @@
         filter: drop-shadow(0 0 12px rgba(255,215,0,0.28));
         transform: translateY(-0.5px);
       }
+    }
+
+    @keyframes jokerMsgFlash {
+      0%, 49% {
+        filter: brightness(1.05);
+        transform: translateY(0) scale(1);
+        text-shadow:
+          0 0 2px rgba(0,0,0,0.95),
+          0 0 10px rgba(255,215,0,0.35),
+          0 0 22px rgba(255,215,0,0.20),
+          0 0 34px rgba(255, 40,255,0.14);
+      }
+      50%, 100% {
+        filter: brightness(1.35) saturate(1.25);
+        transform: translateY(-0.5px) scale(1.02);
+        text-shadow:
+          0 0 3px rgba(0,0,0,0.98),
+          0 0 14px rgba(255,215,0,0.70),
+          0 0 30px rgba(255,215,0,0.40),
+          0 0 46px rgba(255,255,255,0.18);
+      }
+    }
+
+    #message.joker-alert {
+      color: rgba(255,215,0,0.96) !important;
+      font-size: clamp(1.35rem, 3.4vw, 2.05rem);
+      letter-spacing: 1.6px;
+      -webkit-text-stroke: 0.45px rgba(0,0,0,0.65);
+      animation: jokerMsgFlash 0.16s steps(1, end) infinite;
+    }
+
+    /* FLASH ANIMATION FOR HEADER TEXT */
+    @keyframes jokerMsgFlash {
+      0%, 49% {
+        color: #fff;
+        text-shadow: 0 0 5px #fff;
+        transform: scale(1);
+      }
+      50%, 100% {
+        color: #ffd700; /* GOLD */
+        text-shadow: 0 0 20px #ffd700, 0 0 10px #ff0000;
+        transform: scale(1.1);
+      }
+    }
+
+    #message.joker-alert {
+      opacity: 1 !important; /* Force visible */
+      animation: jokerMsgFlash 0.15s steps(1, end) infinite !important;
     }
 
     .audio-control {
@@ -2231,14 +2320,22 @@
     /* --- CONFIG --- */
     // Aces are rare (1/12 here) so 3x A♠ stays a real event.
     // added 🚬 twice (same weight as 🎲)
+
+    const JOKER = "🃏";
+    const JOKER_MSG = "...AND DON'T FORGET THE JOKER!";
+    const SYM_JOKER = "JOKER";          // use your real symbol key
+    let lastGrid = null;               // 2D array of last landed symbols
+
+    // symbols
     const SYMBOLS = [
-      '♠️',
-      '💀','💀',
-      '🎸','🎸','🎸',
-      '🥃','🥃','🥃',
-      '🎲','🎲',
-      '🚬','🚬',
-      '7️⃣'
+      "♠️",
+      "💀","💀",
+      "🎸","🎸","🎸",
+      "🥃","🥃","🥃",
+      "🎲","🎲",
+      "🚬","🚬",
+      "7️⃣",
+      "🃏"
     ];
 
     const SHOW_WIN_COUNTER = true; // toggle visibility in code
@@ -2267,6 +2364,10 @@
     let bank = 0;
     let __spadeMadTimer = null;
     let __spadePopTimer = null;
+    let __jokerBannerTimer = null;    
+    let __jokerJingleTimer = null;
+    let __exclusiveSeqTimer = null;
+    let __audioOverride = false;    
 
     // Lock rules:
     // 1) You can't use locking on your first spin.
@@ -2284,6 +2385,148 @@
 
     // Track current displayed symbols so locks can hold them
     let current = ['♠️', '♠️', '♠️'];
+
+    // Unique non-joker symbols you actually want Joker to substitute into.
+    // (Keep it explicit so you don't accidentally include duplicates/weights.)
+    const BASE_SYMBOL_TYPES = ["♠️","💀","🎸","🥃","🎲","🚬","7️⃣"];
+
+// --- additional joker stuff ---
+    function cloneGrid(g) {
+      return g ? g.map(row => row.slice()) : null;
+    }
+
+    function restartAnim(el, cls) {
+      el.classList.remove(cls);
+      void el.offsetWidth; // force reflow
+      el.classList.add(cls);
+    }
+
+    // MUST match your DOM: return the symbol element for row/col
+    function cellEl(r, c) {
+      return document.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+    }
+
+    function jokerAppearFX(prevGrid, newGrid) {
+      let anyNew = false;
+
+      for (let r = 0; r < newGrid.length; r++) {
+        for (let c = 0; c < newGrid[r].length; c++) {
+          const now = newGrid[r][c];
+          const prev = prevGrid ? prevGrid[r][c] : null;
+
+          // "appeared" means: it's Joker now, and it wasn't Joker previously (or prevGrid is null)
+          if (now === SYM_JOKER && prev !== SYM_JOKER) {
+            anyNew = true;
+            const el = cellEl(r, c);
+            if (el) restartAnim(el, "joker-flash");
+          }
+        }
+      }
+
+      if (anyNew) {
+        // play the jingle ON APPEAR, not on win
+        // (keep this inside the click/gesture path, not in a timer)
+        playJokerJingle();
+      }
+    }
+
+// --- EVALUATION LOGIC ---
+
+    // Global variable for back-compat/caching
+    let __lastWinEval = null;
+
+// 1. HELPER: Evaluate payout for a 3-symbol line that has NO jokers.
+    function evalNoJokerPayout(syms){
+      const a = syms[0], b = syms[1], c = syms[2];
+
+      // triple
+      if (a === b && b === c){
+        if (a === "♠️") return { mult: PAY.JACKPOT_ACES, kind: "JACKPOT_ACES" };
+        if (a === "7️⃣") return { mult: PAY.TRIPLE_7, kind: "TRIPLE_7" };
+        if (a === "🚬") return { mult: 12, kind: "TRIPLE_CIGS" }; // Matches your previous hardcoded x12
+        return { mult: PAY.TRIPLE_ANY, kind: "TRIPLE_ANY" };
+      }
+
+      // doubles
+      let c7 = 0, cA = 0;
+      for (const s of syms){
+        if (s === "7️⃣") c7++;
+        if (s === "♠️") cA++;
+      }
+
+      if (c7 === 2) return { mult: PAY.DOUBLE_7, kind: "DOUBLE_7" };
+      if (cA === 2) return { mult: PAY.DOUBLE_ACES, kind: "DOUBLE_ACES" };
+
+      return { mult: 0, kind: null };
+    }
+
+    // 2. MAIN EVALUATOR: Handles Jokers automatically
+    function evalBestPayoutWithJoker(rawSyms){
+      const raw = rawSyms.slice();
+      const hasJ = raw.includes(JOKER);
+
+      if (!hasJ){
+        const out = evalNoJokerPayout(raw);
+        return { ...out, usedJoker: false, bestAs: raw };
+      }
+
+      // brute-force substitutions
+      let best = { mult: 0, kind: null, usedJoker: true, bestAs: null };
+      
+      const rank = {
+        "JACKPOT_ACES": 60, "TRIPLE_7": 50, "TRIPLE_ANY": 40,
+        "DOUBLE_7": 30, "DOUBLE_ACES": 20, null: 0
+      };
+
+      const cur = raw.slice();
+
+      function consider(){
+        const out = evalNoJokerPayout(cur);
+        if (out.mult > best.mult) {
+          best = { ...out, usedJoker: true, bestAs: cur.slice() };
+          return;
+        }
+        if (out.mult === best.mult && rank[out.kind] > rank[best.kind]) {
+          best = { ...out, usedJoker: true, bestAs: cur.slice() };
+          return;
+        }
+      }
+
+      function rec(i){
+        if (i === 3) return consider();
+        if (raw[i] === JOKER){
+          for (const s of BASE_SYMBOL_TYPES){
+            cur[i] = s;
+            rec(i + 1);
+          }
+          cur[i] = JOKER; // reset
+        } else {
+          cur[i] = raw[i];
+          rec(i + 1);
+        }
+      }
+
+      rec(0);
+
+      if (!best.bestAs) best.bestAs = raw.map(s => (s === JOKER ? "♠️" : s));
+      return best;
+    }
+
+    // 3. BACK-COMPAT HELPERS (Now defined safely outside)
+    function evaluateWin() {
+      const syms =
+        (arguments.length === 1 && Array.isArray(arguments[0]))
+          ? arguments[0].slice(0, 3)
+          : Array.from(arguments).slice(0, 3);
+
+      __lastWinEval = evalBestPayoutWithJoker(syms);
+      return (__lastWinEval && __lastWinEval.mult) ? __lastWinEval.mult : 0;
+    }
+    window.evaluateWin = evaluateWin;
+
+    function getLastWinEval() {
+      return __lastWinEval;
+    }
 
     // emoji loader
     // const TWEMOJI_OPTS = {
@@ -2368,10 +2611,87 @@
       ]
     };
 
+    /* --- JOKER HIT JINGLE --- */
+    const SEQ_JOKER_HIT = {
+      "bpm": 206,
+      "bars": 2,
+      "loop": false,       
+      "stepsPerBar": 16,
+      "tracks": [
+        {
+          "name": "BASS",
+          "kind": "osc",
+          "view": "piano",
+          "wave": "square",
+          "vol": 0.4,
+          "transpose": -12,
+          "defLen": 1,
+          "defVel": 0.95,
+          "pitchLow": 36,
+          "pitchHigh": 60,
+          "notes": [
+            { "step": 0,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 2,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 4,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 6,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 8,  "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 10, "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 12, "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 14, "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 16, "midi": 52, "len": 1, "vel": 0.95 },
+            { "step": 18, "midi": 52, "len": 1, "vel": 0.95 }
+          ]
+        },
+        {
+          "name": "LEAD",
+          "kind": "osc",
+          "view": "piano",
+          "wave": "sawtooth",
+          "vol": 0.4,
+          "transpose": 0,
+          "defLen": 1,
+          "defVel": 0.85,
+          "pitchLow": 48,
+          "pitchHigh": 84,
+          "notes": [
+            { "step": 0,  "midi": 74, "len": 1, "vel": 0.85 },
+            { "step": 0,  "midi": 81, "len": 1, "vel": 0.85 },
+            { "step": 1,  "midi": 75, "len": 1, "vel": 0.85 },
+            { "step": 1,  "midi": 82, "len": 1, "vel": 0.85 },
+            { "step": 2,  "midi": 76, "len": 1, "vel": 0.85 },
+            { "step": 2,  "midi": 83, "len": 1, "vel": 0.85 },
+
+            { "step": 6,  "midi": 76, "len": 2, "vel": 0.85 },
+            { "step": 6,  "midi": 81, "len": 2, "vel": 0.85 },
+
+            { "step": 10, "midi": 76, "len": 2, "vel": 0.85 },
+            { "step": 10, "midi": 79, "len": 1, "vel": 0.85 },
+
+            { "step": 14, "midi": 76, "len": 2, "vel": 0.85 },
+            { "step": 14, "midi": 81, "len": 1, "vel": 0.85 },
+
+            { "step": 18, "midi": 79, "len": 2, "vel": 0.85 }
+          ]
+        },
+        {
+          "name": "HAT",
+          "kind": "noise",
+          "view": "steps",
+          "vol": 0.25,
+          "dur": 0.03,
+          "steps": [
+            1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,
+            1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0
+          ]
+        }
+      ]
+    };
+
     /* --- LOSE / BUST JINGLE (plays via same mini-seq player as theme) --- */
     const SEQ_LOSE = {
       "bpm": 206,
       "bars": 2,
+      "loop": false, 
       "stepsPerBar": 16,
       "tracks": [
         {
@@ -2577,9 +2897,11 @@
 
       const isDouble  = (text === "DOUBLE STAKES OR QUIT");
       const isAnother = (text === "BORN TO LOSE, PLAY TO WIN. ANOTHER SPIN?");
+      const isJoker   = (text === JOKER_MSG);
 
       els.msg.classList.toggle("double-stakes", isDouble);
       els.msg.classList.toggle("another-spin", isAnother);
+      els.msg.classList.toggle("joker-alert", isJoker);
     }
 
     function addCredits(amount){
@@ -2709,6 +3031,64 @@
       themeBase: 0.60,  // theme loudness
       sfxBase: 1.55     // UI / SFX loudness
     };
+
+    // function ensureJokerBannerEl() {
+    //   let el = document.getElementById("jokerBanner");
+    //   if (el) return el;
+
+    //   el = document.createElement("div");
+    //   el.id = "jokerBanner";
+    //   el.textContent = "…AND DON'T FORGET THE JOKER!";
+    //   document.body.appendChild(el);
+    //   return el;
+    // }
+
+    // function showJokerBannerThen(cb, ms = 850) {
+    //   const el = ensureJokerBannerEl();
+
+    //   // restart animation cleanly
+    //   el.classList.remove("show");
+    //   void el.offsetWidth; // force reflow
+    //   el.classList.add("show");
+
+    //   window.setTimeout(() => {
+    //     el.classList.remove("show");
+    //     cb();
+    //   }, ms);
+    // }
+
+    // Make the Joker reminder actually readable
+    const JOKER_BANNER_MS = 1350; // 850 + ~0.5s
+
+    function showJokerBannerThen(cb, ms = JOKER_BANNER_MS) {
+      // kill any older pending restore (prevents “stuck” from timer races)
+      if (__jokerBannerTimer) {
+        clearTimeout(__jokerBannerTimer);
+        __jokerBannerTimer = null;
+      }
+
+      const prevText  = els.msg.textContent;
+      const prevColor = els.msg.style.color || getComputedStyle(els.msg).color || "#fff";
+
+      // show Joker reminder in the machine header
+      setMessage(JOKER_MSG, prevColor);
+
+      __jokerBannerTimer = window.setTimeout(() => {
+        __jokerBannerTimer = null;
+
+        // Let the caller finish the spin / set win/lose text first
+        if (typeof cb === "function") cb();
+
+        // If the callback didn't change the message, restore something sensible.
+        // NEVER restore "SPINNING..." (that's how you get stuck there)
+        if (els.msg.textContent === JOKER_MSG) {
+          const restoreText =
+            (prevText === "SPINNING...") ? "DOUBLE STAKES OR QUIT" : prevText;
+
+          setMessage(restoreText, prevColor);
+        }
+      }, ms);
+    }
 
     function ensureMixer() {
       const ctx = audioCtx || __seqCtx;
@@ -2902,7 +3282,22 @@
         }
 
         __seqState.nextTime += __seqStepDur();
-        __seqState.step = (__seqState.step + 1) % __seqTotalSteps();
+        
+        // --- FIXED LOOPING LOGIC ---
+        const total = __seqTotalSteps();
+        const nextStep = __seqState.step + 1;
+        
+        if (nextStep >= total) {
+            // If the song is marked "loop: false", STOP HERE.
+            if (__seqState.song.loop === false) {
+                __seqState.playing = false;
+                return; 
+            }
+            __seqState.step = 0; // Otherwise, loop back to start
+        } else {
+            __seqState.step = nextStep;
+        }
+        // ---------------------------
       }
     }
 
@@ -2936,6 +3331,102 @@
       const stepDur = (60 / bpm) / 4; // 16th steps
       return Math.ceil(bars * stepsPerBar * stepDur * 1000);
     }
+
+    function seqDurationMs(seq){
+      // 16 steps/bar => 16th notes => 4 steps per beat
+      const stepMs = (60_000 / seq.bpm) / 4;
+      return Math.ceil(stepMs * (seq.bars * seq.stepsPerBar) + 180);
+    }
+
+    function playMiniSeq(seq){
+      if (!audioEnabled) return;
+
+      // FIX: Your sequencer function is named 'seqPlay', so we must call that.
+      if (typeof seqPlay === "function") { 
+        seqPlay(seq); 
+        return; 
+      }
+
+      // Fallbacks for legacy naming
+      if (typeof playSequence === "function") { playSequence(seq); return; }
+      if (typeof playSeq === "function")      { playSeq(seq); return; }
+      if (typeof playSeqOnce === "function")  { playSeqOnce(seq); return; }
+
+      console.warn("No sequencer player found (seqPlay).");
+    }
+
+  function playSeqExclusive(seq, {
+      stopTheme = true,
+      resumeTheme = true,
+      debounce = true,
+      fallbackMs = 650,
+    } = {}) {
+      if (!audioEnabled) return;
+
+      // 1. Initialize Audio
+      initAudio();
+
+      if (debounce && __exclusiveSeqTimer) return;
+
+      // --- CRITICAL CHANGE: LOCK AUDIO ---
+      __audioOverride = true; 
+      // ----------------------------------
+
+      // Stop everything else
+      seqStop(); 
+      if (stopTheme) themeStopHard();
+      
+      // Play the jingle
+      playMiniSeq(seq);
+
+      const msRaw = seqDurationMs(seq);
+      const ms = (Number.isFinite(msRaw) && msRaw > 0) ? msRaw : fallbackMs;
+
+      __exclusiveSeqTimer = setTimeout(() => {
+        seqStop();
+        __exclusiveSeqTimer = null;
+        
+        // --- RELEASE LOCK ---
+        __audioOverride = false; 
+        // --------------------
+
+        if (resumeTheme && !spinning && audioEnabled) {
+          themeEnsureStarted();
+        }
+      }, ms);
+    }
+
+    // Joker uses the exact same path as any other jingle
+    function playJokerHitJingle() {
+      playSeqExclusive(SEQ_JOKER_HIT, { stopTheme: true, resumeTheme: true, debounce: true });
+    }
+
+    // function playJokerHitJingle(){
+    //       if (!audioEnabled) return;
+
+    //       // Debounce so you don't retrigger if your code touches the result twice.
+    //       if (__jokerJingleTimer) return;
+
+    //       // 1. Pause the main theme so they don't clash
+    //       themeStopHard(); 
+    //       initAudio();
+
+    //       // 2. Play the jingle
+    //       playMiniSeq(SEQ_JOKER_HIT);
+
+    //       const ms = seqDurationMs(SEQ_JOKER_HIT);
+
+    //       // 3. Set a timer to STOP the jingle and clean up the timer flag
+    //       __jokerJingleTimer = setTimeout(() => { 
+    //         seqStop(); // <--- This line was missing!
+    //         __jokerJingleTimer = null; 
+            
+    //         // Optional: Resume theme if we aren't spinning
+    //         if (!spinning && audioEnabled) {
+    //             themeEnsureStarted();
+    //         }
+    //       }, ms);
+    //     }
 
     function playLoseJingle(){
       if (!audioEnabled) return;
@@ -3023,6 +3514,7 @@
 
     // A raw tone player that doesn't interfere with the theme
     function playToneRaw(freq, type, duration, vol = 0.10) {
+      if (__audioOverride) return; // <--- IF JINGLE IS PLAYING, SHUT UP
       if (!audioEnabled) return;
       if (!audioCtx) initAudio();
       if (!audioCtx) return;
@@ -3048,6 +3540,7 @@
 
     // A generic beep function (Square wave for arcade feel)
     function playTone(freq, type, duration, vol = 0.10) {
+      if (__audioOverride) return;       
       if (!audioEnabled) return;
       if (!audioCtx) initAudio();
       if (!audioCtx) return;
@@ -3107,6 +3600,7 @@
 
     // Arpeggio Win Sound (Coin Count Up Effect)
     function playWinSound(isJackpot) {
+      if (__audioOverride) return; // <--- DON'T BEEP OVER MY JOKER
       if (!audioEnabled) return;
       if (!audioCtx) initAudio();
       if (!audioCtx) return;
@@ -3158,35 +3652,82 @@
       }, 1200);
     }
 
-    function spin() {
+    function settleLine(finalSyms){
+      // finalSyms MUST be raw symbols like ["🃏","7️⃣","7️⃣"], not HTML, not textContent with "LOCKED"
+      const raw = finalSyms.slice();
+
+      const best = evalBestPayoutWithJoker(raw);  // <-- THE POINT
+      const tb = totalBet();
+      const win = (best.mult | 0) > 0 ? tb * best.mult : 0;
+
+      const finish = () => {
+        if (raw.includes(JOKER)) {
+          // optional: always show the reminder when Joker appears
+          setMessage(JOKER_MSG, "#ffd700");
+        }
+
+        if (win > 0) {
+          credits += win;
+          netWins += win;
+
+          // optional: tell the player what the Joker “became”
+          if (best.usedJoker) {
+            setMessage(`JOKER WILD → ${best.bestAs.join("")} (x${best.mult})`, "#ffd700");
+          } else {
+            setMessage(`WIN! (x${best.mult})`, "gold");
+          }
+        } else {
+          // lose
+          setMessage("NO WIN — SPIN AGAIN", "#bbb");
+          netWins -= tb; // only if your rules subtract total bet on loss
+        }
+
+        updateUI();
+      };
+
+      // If you want the banner: show it BEFORE applying the result
+      if (raw.includes(JOKER)) showJokerBannerThen(finish, 850);
+      else finish();
+    }
+
+  function spin() {
+
+      // cancelJokerBanner();
+      els.msg.classList.remove("joker-alert");
 
       if (spinning) return;
 
-      themeStopHard();          // stop theme for the whole spin
-      stopSpinMusic();          // safety (in case something was left running)
+      if (__exclusiveSeqTimer) clearTimeout(__exclusiveSeqTimer);
+      __exclusiveSeqTimer = null;
+      __audioOverride = false; // Force unlock
 
-      // Ensure audio context is live on user click
+      themeStopHard();
+      stopSpinMusic();
+
+      // Ensure audio context is live
       if (audioEnabled && audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
       if (audioEnabled && !audioCtx) initAudio();
 
-      // Snapshot locks for THIS spin, then consume them immediately.
+      // Snapshot locks
       const held = locks.slice();
       let usedLocks = held.some(Boolean);
 
-      // Rule 1: no locks on first spin. Rule 2: after a locked spin, next spin must be clean.
+      // Rules: No locks on first spin, no consecutive locks
       if (!hasSpun || lockCooldown) {
         held[0] = held[1] = held[2] = false;
         usedLocks = false;
       }
 
-      // Remember which reels are held for this spin so the LOCKED tag stays on during the animation
       spinHeld = held.slice();
-
-      // Consume locks immediately after SPIN is pressed (prevents carry-over)
       locks[0] = locks[1] = locks[2] = false;
 
       const lockCount = held.reduce((a, x) => a + (x ? 1 : 0), 0);
-      const mult = 2 ** lockCount;
+
+      // --- FIX IS HERE ---
+      // calculate multiplier based on LOCKS (1, 2, or 4)
+      const mult = 2 ** lockCount; 
+      // -------------------
+
       const cost = baseBet * mult;
 
       if (credits < cost) {
@@ -3280,6 +3821,19 @@
 
         // mark spin done BEFORE checkWin
         spinning = false;
+
+        // --- 1. PLAY JOKER MUSIC ---
+        let jokerActive = false;
+        if (current.includes(JOKER)) {
+          playJokerHitJingle();
+          showJokerBannerThen(() => {}, 850);
+          setMessage(JOKER_MSG, "#ffd700");
+          // MAKE HEADER FLASH
+          els.msg.classList.add("joker-alert");                     
+          jokerActive = true;
+        }
+        // ---------------------------
+
         tripleWinThisSpin = false;
 
         const outcome = checkWin(res, cost);
@@ -3364,101 +3918,95 @@
     els.cashoutBtn.addEventListener("click", cashOut);
 
     /* new version (returns outcome; no premature "LOSE.") */
-    function checkWin(r, cost) {
-      const [s1, s2, s3] = r;
+function checkWin(r, cost) {
+      // 1. Use the Evaluation Engine (Handles Jokers Automatically)
+      const evaluation = evalBestPayoutWithJoker(r);
+      const { mult, kind, bestAs, usedJoker } = evaluation;
 
-      // JACKPOT: 3 ACES
-      if (s1 === '♠️' && s2 === '♠️' && s3 === '♠️') {
-        tripleWinThisSpin = true;
-        const win = cost * PAY.JACKPOT_ACES;
-        credits += win;
-        netWins += win;
+      // 2. Handle Loss
+      if (mult <= 0) {
+        playTone(110, 'sawtooth', 0.25, 0.14);
+        return "LOSS";
+      }
+
+      // 3. Process Win
+      const win = cost * mult;
+      credits += win;
+      netWins += win;
+      
+      // Update global flags
+      tripleWinThisSpin = (kind.includes("TRIPLE") || kind.includes("JACKPOT"));
+
+      // 4. Visuals & Sounds based on the *Resolved* Result (bestAs)
+      
+      // -- JACKPOT (Aces) --
+      if (kind === "JACKPOT_ACES") {
         setMessage("⚡ ACE OF SPADES! ⚡", "gold");
         triggerBigWinEffect();
         playWinSound(true);
-        updateUI();
-        return "JACKPOT";
       }
-
-      // EXTRA: 3 SEVENS
-      if (s1 === '7️⃣' && s2 === '7️⃣' && s3 === '7️⃣') {
-        tripleWinThisSpin = true;
-        const win = cost * PAY.TRIPLE_7;
-        credits += win;
-        netWins += win;
+      // -- SEVENS --
+      else if (kind === "TRIPLE_7") {
         setMessage(`LUCKY SEVENS! +${win}`, "gold");
         flashReels();
-        triggerBigWinEffect(1200);     // <-- add this (or 1200 if you want less)        
+        triggerBigWinEffect(1200);
         playWinSound(false);
         kickSpeakers();
-        updateUI();
-        return "WIN";
       }
-
-      // CIGS (after triple 7s, before triple-any):
-      if (s1 === '🚬' && s2 === '🚬' && s3 === '🚬') {
-        tripleWinThisSpin = true;
-        const win = cost * 12; // whatever
-        credits += win;
-        netWins += win;
+      // -- CIGS --
+      else if (kind === "TRIPLE_CIGS") {
         setMessage(`CHAIN SMOKED! +${win}`, "gold");
         flashReels();
         triggerBigWinEffect(1200);
         playWinSound(false);
         kickSpeakers();
-        updateUI();
-        return "WIN";
       }
+      // -- ANY OTHER TRIPLE (Skulls, Guitars, Dice, Whiskey) --
+      else if (kind === "TRIPLE_ANY") {
+        // Get the name of the symbol we matched (e.g., "SKULLS")
+        const symName = getSymbolName(bestAs[0]); 
+        
+        // Optional: Acknowledge the Joker if used
+        const prefix = usedJoker ? "WILD " : "TRIPLE ";
+        setMessage(`${prefix}${symName}! +${win}`, "#fff");
 
-      // 3 OF A KIND (any)
-      if (s1 === s2 && s2 === s3) {
-        tripleWinThisSpin = true;
-        const win = cost * PAY.TRIPLE_ANY;
-        credits += win;
-        netWins += win;
-        setMessage(`TRIPLE ${getSymbolName(s1)}! +${win}`, "#fff");
         flashReels();
-        triggerBigWinEffect(1000);     // <-- add this
+        triggerBigWinEffect(1000);
         playWinSound(false);
         kickSpeakers();
-        updateUI();
-        return "WIN";
       }
-
-      // 2 ACES (any position)
-      const aceCount = (s1 === '♠️') + (s2 === '♠️') + (s3 === '♠️');
-      if (aceCount === 2) {
-        const win = cost * PAY.DOUBLE_ACES;
-        credits += win;
-        netWins += win;
+      // -- DOUBLE ACES --
+      else if (kind === "DOUBLE_ACES") {
         setMessage(`DOUBLE ACES +${win}`, "#ccc");
         triggerSmallWinEffect(650);
         playTone(880, "square", 0.10, 0.10);
         setTimeout(() => playTone(1100, "square", 0.18, 0.10), 110);
         kickSpeakers();
-        updateUI();
-        return "WIN";
       }
-
-      // EXTRA: 2 SEVENS
-      const sevenCount = (s1 === '7️⃣') + (s2 === '7️⃣') + (s3 === '7️⃣');
-      if (sevenCount === 2) {
-        const win = cost * PAY.DOUBLE_7;
-        credits += win;
-        netWins += win;
+      // -- DOUBLE SEVENS --
+      else if (kind === "DOUBLE_7") {
         setMessage(`DOUBLE 7S +${win}`, "#ddd");
         triggerSmallWinEffect(650);
         playTone(740, "square", 0.10, 0.10);
         setTimeout(() => playTone(988, "square", 0.16, 0.10), 120);
         kickSpeakers();
-        updateUI();
-        return "WIN";
       }
 
-      // LOSS (message is decided AFTER cooldown/lock-availability is computed)
-      playTone(110, 'sawtooth', 0.25, 0.14);
-      return "LOSS";
+      // 5. Finalize UI
+      updateUI();
+      
+      // Optional: Flash the Joker banner if a Joker saved the day
+      if (usedJoker) {
+        showJokerBannerThen(() => {}, 850);
+      }
+
+      return "WIN";
     }
+
+    //   // LOSS (message is decided AFTER cooldown/lock-availability is computed)
+    //   playTone(110, 'sawtooth', 0.25, 0.14);
+    //   return "LOSS";
+    // }
 
     function triggerSmallWinEffect(ms = 650){
       // retrigger-safe
@@ -3489,6 +4037,25 @@
         els.machine.classList.remove('shake');
         document.querySelectorAll('.reel').forEach(el => el.classList.remove('win-flash'));
       }, ms);
+    }
+
+    // // deleted dupe
+    // function showJokerBannerThen(nextFn){
+    //   if (__jokerBannerTimer) clearTimeout(__jokerBannerTimer);
+
+    //   setMessage(JOKER_MSG, "gold");
+
+    //   __jokerBannerTimer = setTimeout(() => {
+    //     __jokerBannerTimer = null;
+    //     if (typeof nextFn === "function") nextFn();
+    //   }, 1350);
+    // }
+
+    function cancelJokerBanner(){
+      if (__jokerBannerTimer) clearTimeout(__jokerBannerTimer);
+      __jokerBannerTimer = null;
+      // If we were showing it, also remove the class by re-setting message color later anyway.
+      els.msg.classList.remove("joker-alert");
     }
 
     // function triggerBigWinEffect() {
