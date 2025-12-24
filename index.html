@@ -2326,14 +2326,31 @@
     const SYM_JOKER = "JOKER";          // use your real symbol key
     let lastGrid = null;               // 2D array of last landed symbols
 
-    // symbols
+    // symbols (duplicates == weight)
+    // "♦️","♦️",
+    // "♣️","♣️",
+    // "🔪","🔪",
+
     const SYMBOLS = [
-      "♠️",
+      "♠️",                // keep rare
+
+      // other suits
+      "🐍","🐍",
+
+      // existing
       "💀","💀",
       "🎸","🎸","🎸",
       "🥃","🥃","🥃",
       "🎲","🎲",
       "🚬","🚬",
+
+      // new
+      "🍺","🍺","🍺",
+      "🎱","🎱",
+      "💣","💣",
+      "🔪","🔪",
+
+      // keep rare-ish
       "7️⃣",
       "🃏"
     ];
@@ -2346,11 +2363,17 @@
 
     // Payout multipliers applied to TOTAL BET (base bet * lock multiplier)
     const PAY = {
-      JACKPOT_ACES: 50,   // ♠️♠️♠️
-      TRIPLE_ANY: 10,     // any 3-of-a-kind
-      DOUBLE_ACES: 2,     // any 2 aces
-      TRIPLE_7: 20,       // 7️⃣7️⃣7️⃣ (extra)
-      DOUBLE_7: 3,        // any 2 sevens (extra)
+      JACKPOT_ACES: 50,
+      TRIPLE_7: 20,
+      TRIPLE_ANY: 10,
+      DOUBLE_ACES: 2,
+      DOUBLE_7: 3,
+
+      // optional specials
+      TRIPLE_8BALL: 25,
+      TRIPLE_BEER: 14,
+      TRIPLE_BOOT: 12,
+      TRIPLE_SUIT: 16  // ♥♦♣ (not ♠)
     };
 
     /* --- STATE --- */
@@ -2388,7 +2411,13 @@
 
     // Unique non-joker symbols you actually want Joker to substitute into.
     // (Keep it explicit so you don't accidentally include duplicates/weights.)
-    const BASE_SYMBOL_TYPES = ["♠️","💀","🎸","🥃","🎲","🚬","7️⃣"];
+    // Unique non-joker symbols Joker is allowed to become
+    const BASE_SYMBOL_TYPES = [
+      "♠️","♥️","♦️","♣️",
+      "💀","🎸","🥃","🎲","🚬",
+      "🍺","🎱","🔪","💣",
+      "7️⃣"
+    ];
 
 // --- additional joker stuff ---
     function cloneGrid(g) {
@@ -2443,7 +2472,14 @@
       if (a === b && b === c){
         if (a === "♠️") return { mult: PAY.JACKPOT_ACES, kind: "JACKPOT_ACES" };
         if (a === "7️⃣") return { mult: PAY.TRIPLE_7, kind: "TRIPLE_7" };
-        if (a === "🚬") return { mult: 12, kind: "TRIPLE_CIGS" }; // Matches your previous hardcoded x12
+        if (a === "🚬") return { mult: 12, kind: "TRIPLE_CIGS" };
+
+        // optional specials
+        if (a === "🎱") return { mult: PAY.TRIPLE_8BALL, kind: "TRIPLE_8BALL" };
+        if (a === "🍺") return { mult: PAY.TRIPLE_BEER, kind: "TRIPLE_BEER" };
+        if (a === "🥾") return { mult: PAY.TRIPLE_BOOT, kind: "TRIPLE_BOOT" };
+        if (a === "♥️" || a === "♦️" || a === "♣️") return { mult: PAY.TRIPLE_SUIT, kind: "TRIPLE_SUIT" };
+
         return { mult: PAY.TRIPLE_ANY, kind: "TRIPLE_ANY" };
       }
 
@@ -2800,10 +2836,22 @@
 
     // --- ITEMS OF INTEREST (defaults: ♠️ + 7️⃣) ---
     const INTEREST_ITEMS = [
-      { sym: '♠️', label: '' },
-      { sym: '7️⃣', label: '' },
+      { sym: "♠️", label: "" },
+      { sym: "7️⃣", label: "" },
+
+      // // new “for starters”
+      // { sym: "🎱", label: "" },
+      // { sym: "🍺", label: "" },
+      // { sym: "🥾", label: "" },
+
+      // // other suits
+      // { sym: "♥️", label: "" },
+      // { sym: "♦️", label: "" },
+      // { sym: "♣️", label: "" }
     ];
+
     const INTEREST_SET = new Set(INTEREST_ITEMS.map(x => x.sym));
+
     let __interestEls = [];
 
     function buildInterestBar(){
@@ -3428,9 +3476,30 @@
     //       }, ms);
     //     }
 
+    // function playLoseJingle(){
+    //   if (!audioEnabled) return;
+    //   if (__jinglePlaying) return;   // <-- add this
+
+    //   themeStopHard();
+    //   initAudio();
+
+    //   __jinglePlaying = true;
+    //   seqPlay(SEQ_LOSE);
+
+    //   const ms = seqDurationMs(SEQ_LOSE) + 80;
+    //   setTimeout(() => {
+    //     __jinglePlaying = false;
+    //     try { seqStop(); } catch {}
+
+    //     if (!audioEnabled) return;
+    //     if (spinning) return;
+    //     seqPlay(SEQ_THEME);
+    //   }, ms);
+    // }
+
     function playLoseJingle(){
       if (!audioEnabled) return;
-      if (__jinglePlaying) return;   // <-- add this
+      if (__jinglePlaying) return;   
 
       themeStopHard();
       initAudio();
@@ -3445,7 +3514,10 @@
 
         if (!audioEnabled) return;
         if (spinning) return;
-        seqPlay(SEQ_THEME);
+        
+        // OLD: seqPlay(SEQ_THEME); <--- The cause of the glitch (blind start)
+        // NEW:
+        themeEnsureStarted(); 
       }, ms);
     }
 
@@ -3461,10 +3533,27 @@
     }
 
     // Interrupt theme now, then restart from step 0 after ms (unless spinning)
+    // function themeInterruptFor(ms){
+    //   if (!audioEnabled) return;
+
+    //   try { seqStop(); } catch {}
+
+    //   __themeBusyUntil = Math.max(__themeBusyUntil, performance.now() + ms);
+
+    //   if (__themeTimer) clearTimeout(__themeTimer);
+    //   __themeTimer = setTimeout(() => {
+    //     __themeTimer = null;
+    //     if (!audioEnabled) return;
+    //     if (spinning) return; // spin() restarts after results
+    //     initAudio();
+    //     seqPlay(SEQ_THEME);   // always starts from step 0
+    //   }, Math.max(0, __themeBusyUntil - performance.now()));
+    // }
+
     function themeInterruptFor(ms){
       if (!audioEnabled) return;
 
-      try { seqStop(); } catch {}
+      try { seqStop(); } catch {} 
 
       __themeBusyUntil = Math.max(__themeBusyUntil, performance.now() + ms);
 
@@ -3472,9 +3561,12 @@
       __themeTimer = setTimeout(() => {
         __themeTimer = null;
         if (!audioEnabled) return;
-        if (spinning) return; // spin() restarts after results
+        if (spinning) return;
         initAudio();
-        seqPlay(SEQ_THEME);   // always starts from step 0
+        
+        // OLD: seqPlay(SEQ_THEME);
+        // NEW:
+        themeEnsureStarted(); 
       }, Math.max(0, __themeBusyUntil - performance.now()));
     }
 
@@ -3855,7 +3947,7 @@
         if (outcome === "LOSS") {
           if (credits < BET_MIN) {
             setMessage("OUT OF CREDITS — INSERT COIN", "#ff4444");
-            playLoseJingle();
+            // playLoseJingle();
           } else if (credits < baseBet) {
             setMessage("NOT ENOUGH CREDITS!", "#ff4444");
           } else if (!lockCooldown && hasSpun) {
@@ -3961,20 +4053,6 @@ function checkWin(r, cost) {
         playWinSound(false);
         kickSpeakers();
       }
-      // -- ANY OTHER TRIPLE (Skulls, Guitars, Dice, Whiskey) --
-      else if (kind === "TRIPLE_ANY") {
-        // Get the name of the symbol we matched (e.g., "SKULLS")
-        const symName = getSymbolName(bestAs[0]); 
-        
-        // Optional: Acknowledge the Joker if used
-        const prefix = usedJoker ? "WILD " : "TRIPLE ";
-        setMessage(`${prefix}${symName}! +${win}`, "#fff");
-
-        flashReels();
-        triggerBigWinEffect(1000);
-        playWinSound(false);
-        kickSpeakers();
-      }
       // -- DOUBLE ACES --
       else if (kind === "DOUBLE_ACES") {
         setMessage(`DOUBLE ACES +${win}`, "#ccc");
@@ -3991,7 +4069,21 @@ function checkWin(r, cost) {
         setTimeout(() => playTone(988, "square", 0.16, 0.10), 120);
         kickSpeakers();
       }
+      // -- ANY OTHER TRIPLE (Skulls, Guitars, Dice, Whiskey) --
+      // else if (kind === "TRIPLE_ANY") {
+      else if (kind.startsWith("TRIPLE_")) {
+        // Get the name of the symbol we matched (e.g., "SKULLS")
+        const symName = getSymbolName(bestAs[0]); 
+        
+        // Optional: Acknowledge the Joker if used
+        const prefix = usedJoker ? "WILD " : "TRIPLE ";
+        setMessage(`${prefix}${symName}! +${win}`, "#fff");
 
+        flashReels();
+        triggerBigWinEffect(1000);
+        playWinSound(false);
+        kickSpeakers();
+      }
       // 5. Finalize UI
       updateUI();
       
@@ -4079,6 +4171,15 @@ function checkWin(r, cost) {
     }
 
     function getSymbolName(symbol) {
+      if (symbol === '♥️') return "HEARTS";            
+      if (symbol === '♦️') return "DIAMONDS";            
+      if (symbol === '♣️') return "CLUBS";            
+      if (symbol === '♠️') return "SPADES";
+      if (symbol === '🍺') return "BEERS";
+      if (symbol === '💣') return "BOMBS";      
+      if (symbol === '🎱') return "8-BALLS";
+      if (symbol === '🐍') return "SNAKES";      
+      if (symbol === '🔪') return "KNIVES";
       if (symbol === '💀') return "SKULLS";
       if (symbol === '🎸') return "GUITARS";
       if (symbol === '🥃') return "WHISKEY";
