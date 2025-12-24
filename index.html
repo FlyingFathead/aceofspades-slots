@@ -2235,7 +2235,7 @@
             <td><span class="cond">2×♠️</span><span class="pay" style="color:#fff">LOCK</span></td>
             <td><span class="cond">2×7️⃣</span><span class="pay" id="pay-27">x3</span></td>
             <!-- UPDATED CELL BELOW -->            
-            <td><span class="cond">2×🍺🥃🚬</span><span class="pay">x2</span></td>
+            <td><span class="cond">🍺🍺 | 🥃🥃 | 🚬🚬</span><span class="pay">x2</span></td>
           </tr>
         </tbody>
       </table>
@@ -2325,8 +2325,9 @@
     // added 🚬 twice (same weight as 🎲)
 
     const JOKER = "🃏";
+    const SYM_JOKER = JOKER;
     const JOKER_MSG = "...AND DON'T FORGET THE JOKER!";
-    const SYM_JOKER = "JOKER";          // use your real symbol key
+    // const SYM_JOKER = JOKER;          // use your real symbol key
     let lastGrid = null;               // 2D array of last landed symbols
 
     // symbols (duplicates == weight)
@@ -2347,11 +2348,17 @@
       "💣", "💣",          // Bombs
       "🔪", "🔪",          // Knives
 
-      // --- THE VICES (Common Filler - High Count) ---
-      // These exist to trigger the "Double" wins
-      "🥃", "🥃", "🥃", "🥃",        // Whiskey (4)
-      "🍺", "🍺", "🍺", "🍺", "🍺",  // Beer (5)
-      "🚬", "🚬", "🚬", "🚬", "🚬"   // Cigs (5)
+      // // --- THE VICES (Common Filler - High Count) ---
+      // // These exist to trigger the "Double" wins
+      // "🥃", "🥃", "🥃", "🥃",        // Whiskey (4)
+      // "🍺", "🍺", "🍺", "🍺", "🍺",  // Beer (5)
+      // "🚬", "🚬", "🚬", "🚬", "🚬"   // Cigs (5)
+
+      // // VICES (2x) for more balanced wins
+      "🥃","🥃","🥃",      // 3
+      "🍺","🍺","🍺","🍺", // 4
+      "🚬","🚬","🚬",      // 3
+
     ];
 
     const SHOW_WIN_COUNTER = true; // toggle visibility in code
@@ -2412,11 +2419,38 @@
     // (Keep it explicit so you don't accidentally include duplicates/weights.)
     // Unique non-joker symbols Joker is allowed to become
     const BASE_SYMBOL_TYPES = [
-      "♠️","♥️","♦️","♣️",
-      "💀","🎸","🥃","🎲","🚬",
-      "🍺","🎱","🔪","💣","⚡",
-      "7️⃣"
+      "♠️","7️⃣",
+      "💀","🎱","🐍","🎸","⚡","💣","🔪",
+      "🥃","🍺","🚬"
     ];
+
+// --- joker resolving 3-in-a-row ---
+function resolve3(a, b, c, { JOKER_KEY = "JOKER", JOKER_GLYPH = "🃏" } = {}) {
+  const isJoker = (s) => s === JOKER_KEY || s === JOKER_GLYPH; // handles either representation
+
+  const line = [a, b, c];
+  const jokers = line.filter(isJoker).length;
+  const non = line.filter((s) => !isJoker(s));
+
+  // 3 jokers (if even allowed)
+  if (non.length === 0) return { ok: true, symbol: JOKER_KEY, jokers };
+
+  // count remaining symbols
+  const counts = new Map();
+  for (const s of non) counts.set(s, (counts.get(s) || 0) + 1);
+
+  // If after removing jokers we only have ONE symbol type, joker(s) can complete it.
+  // - S,S,J  -> counts.size=1 -> ok, symbol=S
+  // - S,J,J  -> counts.size=1 -> ok, symbol=S
+  // - S,S,S  -> counts.size=1 -> ok, symbol=S
+  if (counts.size === 1) {
+    const symbol = counts.keys().next().value;
+    return { ok: true, symbol, jokers };
+  }
+
+  // One joker + two different non-jokers -> NOT a match under your stated rule
+  return { ok: false };
+}
 
 // --- additional joker stuff ---
     function cloneGrid(g) {
@@ -2513,73 +2547,82 @@
       return { mult: 0, kind: null };
     }
 
-    // 2. MAIN EVALUATOR: Handles Jokers automatically
-    function evalBestPayoutWithJoker(rawSyms){
-      const raw = rawSyms.slice();
-      const hasJ = raw.includes(JOKER);
+  // 2. MAIN EVALUATOR: Handles Jokers automatically
+  function evalBestPayoutWithJoker(rawSyms){
+    const raw = rawSyms.slice();
+    const hasJ = raw.includes(JOKER);
 
-      if (!hasJ){
-        const out = evalNoJokerPayout(raw);
-        return { ...out, usedJoker: false, bestAs: raw };
+    if (!hasJ){
+      const out = evalNoJokerPayout(raw);
+      return { ...out, usedJoker: false, bestAs: raw };
+    }
+
+    // brute-force substitutions
+    let best = { mult: 0, kind: null, usedJoker: true, bestAs: null };
+
+    const rank = {
+      "JACKPOT_ACES": 60, "TRIPLE_7": 50, "TRIPLE_ANY": 40,
+      "DOUBLE_7": 30, "DOUBLE_ACES": 20, null: 0
+    };
+
+    const cur = raw.slice();
+
+    function consider(){
+      const out = evalNoJokerPayout(cur);
+      if (out.mult > best.mult) {
+        best = { ...out, usedJoker: true, bestAs: cur.slice() };
+        return;
       }
-
-      // brute-force substitutions
-      let best = { mult: 0, kind: null, usedJoker: true, bestAs: null };
-      
-      const rank = {
-        "JACKPOT_ACES": 60, "TRIPLE_7": 50, "TRIPLE_ANY": 40,
-        "DOUBLE_7": 30, "DOUBLE_ACES": 20, null: 0
-      };
-
-      const cur = raw.slice();
-
-      function consider(){
-        const out = evalNoJokerPayout(cur);
-        if (out.mult > best.mult) {
-          best = { ...out, usedJoker: true, bestAs: cur.slice() };
-          return;
-        }
-        if (out.mult === best.mult && rank[out.kind] > rank[best.kind]) {
-          best = { ...out, usedJoker: true, bestAs: cur.slice() };
-          return;
-        }
+      if (out.mult === best.mult && rank[out.kind] > rank[best.kind]) {
+        best = { ...out, usedJoker: true, bestAs: cur.slice() };
+        return;
       }
+    }
 
-      function rec(i){
-        if (i === 3) return consider();
-        if (raw[i] === JOKER){
-          for (const s of BASE_SYMBOL_TYPES){
-            cur[i] = s;
-            rec(i + 1);
-          }
-          cur[i] = JOKER; // reset
-        } else {
-          cur[i] = raw[i];
+    function rec(i){
+      if (i === 3) return consider();
+
+      if (raw[i] === JOKER){
+        for (const s of BASE_SYMBOL_TYPES){
+          cur[i] = s;
           rec(i + 1);
         }
+        cur[i] = JOKER; // reset
+      } else {
+        cur[i] = raw[i];
+        rec(i + 1);
       }
-
-      rec(0);
-
-      if (!best.bestAs) best.bestAs = raw.map(s => (s === JOKER ? "♠️" : s));
-      return best;
     }
 
-    // 3. BACK-COMPAT HELPERS (Now defined safely outside)
-    function evaluateWin() {
-      const syms =
-        (arguments.length === 1 && Array.isArray(arguments[0]))
-          ? arguments[0].slice(0, 3)
-          : Array.from(arguments).slice(0, 3);
+    rec(0);
 
-      __lastWinEval = evalBestPayoutWithJoker(syms);
-      return (__lastWinEval && __lastWinEval.mult) ? __lastWinEval.mult : 0;
-    }
-    window.evaluateWin = evaluateWin;
+    if (!best.bestAs) best.bestAs = raw.map(s => (s === JOKER ? "♠️" : s));
+    return best;
+  }
 
-    function getLastWinEval() {
-      return __lastWinEval;
+  // 3. BACK-COMPAT HELPERS (safe globals)
+  function evaluateWin() {
+    const syms =
+      (arguments.length === 1 && Array.isArray(arguments[0]))
+        ? arguments[0].slice(0, 3)
+        : Array.from(arguments).slice(0, 3);
+
+    if (typeof evalBestPayoutWithJoker !== "function") {
+      __lastWinEval = null;
+      return 0;
     }
+
+    __lastWinEval = evalBestPayoutWithJoker(syms);
+    return (__lastWinEval && __lastWinEval.mult) ? __lastWinEval.mult : 0;
+  }
+
+  // Only attach if you want the globals (or if old code depends on them)
+  window.evaluateWin ??= evaluateWin;
+
+  function getLastWinEval() {
+    return __lastWinEval;
+  }
+  window.getLastWinEval ??= getLastWinEval;
 
     // emoji loader
     // const TWEMOJI_OPTS = {
@@ -3197,6 +3240,56 @@
       g.linearRampToValueAtTime(base, tUp);
     }
 
+    // Simple pitch-bend siren: up, down, up, down
+    function playSirenBend({
+      baseHz = 420,
+      peakHz = 920,
+      segSec = 0.12,   // duration of each bend segment
+      volume = 0.22,
+      wave = "sawtooth" // "sine" | "triangle" | "square" | "sawtooth"
+    } = {}) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+
+      // reuse one context if you like; this keeps it self-contained
+      const ctx = playSirenBend._ctx || (playSirenBend._ctx = new AC());
+
+      const t0 = ctx.currentTime + 0.005;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const filter = ctx.createBiquadFilter();
+
+      osc.type = wave;
+
+      // soften harshness (optional but usually nicer for "siren")
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(3200, t0);
+      filter.Q.setValueAtTime(0.6, t0);
+
+      // gain envelope to avoid clicks
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.linearRampToValueAtTime(volume, t0 + 0.01);
+      gain.gain.linearRampToValueAtTime(0.0001, t0 + segSec * 4 + 0.06);
+
+      // frequency bends: up, down, up, down
+      osc.frequency.setValueAtTime(baseHz, t0);
+      osc.frequency.linearRampToValueAtTime(peakHz, t0 + segSec);         // up
+      osc.frequency.linearRampToValueAtTime(baseHz, t0 + segSec * 2);     // down
+      osc.frequency.linearRampToValueAtTime(peakHz, t0 + segSec * 3);     // up
+      osc.frequency.linearRampToValueAtTime(baseHz, t0 + segSec * 4);     // down
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(t0);
+      osc.stop(t0 + segSec * 4 + 0.08);
+    }
+
+    // example:
+    // playSirenBend({ baseHz: 500, peakHz: 1200, segSec: 0.10, wave: "square" });
+
     // UI blip that "pops" through the theme: quick duck + tiny click + tone
     function playUiBlip(freq, type, duration, vol = 0.14) {
       if (!audioEnabled) return;
@@ -3420,6 +3513,16 @@
 
       console.warn("No sequencer player found (seqPlay).");
     }
+
+  // --- DOUBLE VICE WIN SFX (🍺🍺 / 🥃🥃 / 🚬🚬) ---
+  function playViceDoubleChing(){
+    if (!audioEnabled) return;
+
+    // "Ching-ching" — short bright hits. Volume param == 1.0 as requested.
+    playUiBlip(1760, "triangle", 0.07, 1.0);
+    setTimeout(() => playUiBlip(1320, "triangle", 0.10, 1.0), 85);
+    setTimeout(() => playUiBlip(1760, "triangle", 0.06, 1.0), 170);
+  }
 
   function playSeqExclusive(seq, {
       stopTheme = true,
@@ -4119,6 +4222,9 @@ function checkWin(r, cost) {
 
       // -- NEW: VICE DOUBLES (Beer, Whiskey, Cigs) --
       else if (kind === "DOUBLE_VICE") {
+
+        playSirenBend({ baseHz: 500, peakHz: 1200, segSec: 0.10, wave: "square" });
+
         const counts = {};
         let winner = "VICE";
         bestAs.forEach(s => { counts[s] = (counts[s]||0)+1; if(counts[s]===2) winner = s; });
