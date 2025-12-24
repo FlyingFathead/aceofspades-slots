@@ -2230,7 +2230,9 @@
             <td><span class="cond">ANY 3</span><span class="pay" id="pay-any3">x10</span></td>
           </tr>
           <tr>
-            <td><span class="cond">2×♠️</span><span class="pay" id="pay-2aces">x2</span></td>
+            <!-- <td><span class="cond">2×♠️</span><span class="pay" id="pay-2aces">x2</span></td> -->
+            <!-- CHANGED: 2 Aces now says "LOCK" instead of "x2" -->
+            <td><span class="cond">2×♠️</span><span class="pay" style="color:#fff">LOCK</span></td>
             <td><span class="cond">2×7️⃣</span><span class="pay" id="pay-27">x3</span></td>
             <!-- UPDATED CELL BELOW -->            
             <td><span class="cond">2×🍺🥃🚬</span><span class="pay">x2</span></td>
@@ -2494,7 +2496,7 @@
 
       // High Tier Doubles (Profit)
       if (c7 === 2) return { mult: PAY.DOUBLE_7, kind: "DOUBLE_7" };
-      if (cA === 2) return { mult: PAY.DOUBLE_ACES, kind: "DOUBLE_ACES" };
+      // if (cA === 2) return { mult: PAY.DOUBLE_ACES, kind: "DOUBLE_ACES" };
 
       // --- VICE DOUBLES (Break Even / Push) ---
       // // Changed from 2 to 1. 
@@ -3946,48 +3948,37 @@
 
         const outcome = checkWin(res, cost);
 
-        // play sting ONLY if this was a lock-spin and you lost it
         if (outcome === "LOSS" && usedLocks) {
           playLoseJingle();
         }
 
         hasSpun = true;
         
-        // old logic
-        // lockCooldown = (usedLocks || tripleWinThisSpin);
+        // WIN = No Lock. LOSS = Can Lock (if fresh spin).
+        lockCooldown = (usedLocks || outcome === "WIN"); 
 
-        // Force cooldown on ANY win. 
-        // If outcome is "WIN", you cannot lock next turn.
-        lockCooldown = (usedLocks || outcome === "WIN");        
-
-        // Clear "held" visuals
         spinHeld = [false, false, false];
-
         updateUI();
 
         // LOSS messaging
         if (outcome === "LOSS") {
           if (credits < BET_MIN) {
             setMessage("OUT OF CREDITS — INSERT COIN", "#ff4444");
-            // playLoseJingle();
           } else if (credits < baseBet) {
             setMessage("NOT ENOUGH CREDITS!", "#ff4444");
           } else if (!lockCooldown && hasSpun) {
-            setMessage("DOUBLE STAKES OR QUIT", "var(--highlight)");
+            // --- UPDATED CHECK ---
+            // Don't overwrite the "SO CLOSE" message if we just set it in checkWin
+            if (els.msg.textContent !== "SO CLOSE... LOCK 'EM DOWN!") {
+               setMessage("DOUBLE STAKES OR QUIT", "var(--highlight)");
+            }
           } else {
             setMessage("BORN TO LOSE, PLAY TO WIN. ANOTHER SPIN?", "#888");
           }
         }
 
         cueReadyFlash();
-      }
-
-      // Safety (shouldn't happen with MAX_LOCKS=2, but keep it robust)
-      if (moving.length === 0) {
-        stopSpinMusic();
-        requestAnimationFrame(finishSpin);
-        return;
-      }
+      }        
 
       // Schedule stops for *moving* reels only, and finish on the last moving reel.
       moving.forEach((idx, stage) => {
@@ -4037,9 +4028,27 @@ function checkWin(r, cost) {
       const evaluation = evalBestPayoutWithJoker(r);
       const { mult, kind, bestAs, usedJoker } = evaluation;
 
-      // 2. Handle Loss
+      // 2. Handle Loss (and Detect Near Misses)
       if (mult <= 0) {
-        playTone(110, 'sawtooth', 0.25, 0.14);
+        
+        // --- NEW: Detect 2 Aces Near Miss ---
+        // Count Aces + Jokers in the result
+        let aceCount = 0;
+        r.forEach(s => { if(s === "♠️" || s === "🃏") aceCount++; });
+
+        if (aceCount >= 2) {
+          // It's a "loss", but we encourage locking
+          setMessage("SO CLOSE... LOCK 'EM DOWN!", "#fff");
+          playTone(440, "triangle", 0.3, 0.1); // Helper beep
+        } else {
+          // Standard loss message (moved from finishSpin for cleaner logic, 
+          // or just return "LOSS" and let finishSpin handle the generic message)
+          // For now, we return "LOSS" and let finishSpin handle generic text, 
+          // BUT we play the tone here.
+          playTone(110, 'sawtooth', 0.25, 0.14);
+        }
+        // ------------------------------------
+
         return "LOSS";
       }
 
