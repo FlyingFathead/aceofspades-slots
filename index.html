@@ -2232,7 +2232,8 @@
           <tr>
             <td><span class="cond">2×♠️</span><span class="pay" id="pay-2aces">x2</span></td>
             <td><span class="cond">2×7️⃣</span><span class="pay" id="pay-27">x3</span></td>
-            <td class="empty"></td>
+            <!-- UPDATED CELL BELOW -->
+            <td><span class="cond">2×🍺🥃🚬</span><span class="pay">x2</span></td>
           </tr>
         </tbody>
       </table>
@@ -2332,27 +2333,23 @@
     // "🔪","🔪",
 
     const SYMBOLS = [
-      "♠️",                // keep rare
+      // --- RARE (The Jackpot) ---
+      "♠️", "7️⃣", "🃏",
 
-      // other suits
-      "🐍","🐍",
+      // --- MID TIER (The "Cool" Stuff) ---
+      "💀", "💀",          // Skulls
+      "🎱", "🎱",          // 8-Balls
+      "🐍", "🐍",          // Snakes
+      "🎸", "🎸",          // Guitars
+      "⚡", "⚡",            // Lightning
+      "💣", "💣",          // Bombs
+      "🔪", "🔪",          // Knives
 
-      // existing
-      "💀","💀",
-      "🎸","🎸","🎸",
-      "🥃","🥃","🥃",
-      "🎲","🎲",
-      "🚬","🚬",
-
-      // new
-      "🍺","🍺","🍺",
-      "🎱","🎱",
-      "💣","💣",
-      "🔪","🔪",
-
-      // keep rare-ish
-      "7️⃣",
-      "🃏"
+      // --- THE VICES (Common Filler - High Count) ---
+      // These exist to trigger the "Double" wins
+      "🥃", "🥃", "🥃", "🥃",        // Whiskey (4)
+      "🍺", "🍺", "🍺", "🍺", "🍺",  // Beer (5)
+      "🚬", "🚬", "🚬", "🚬", "🚬"   // Cigs (5)
     ];
 
     const SHOW_WIN_COUNTER = true; // toggle visibility in code
@@ -2415,7 +2412,7 @@
     const BASE_SYMBOL_TYPES = [
       "♠️","♥️","♦️","♣️",
       "💀","🎸","🥃","🎲","🚬",
-      "🍺","🎱","🔪","💣",
+      "🍺","🎱","🔪","💣","⚡",
       "7️⃣"
     ];
 
@@ -2468,30 +2465,43 @@
     function evalNoJokerPayout(syms){
       const a = syms[0], b = syms[1], c = syms[2];
 
-      // triple
+      // --- CHECK TRIPLES FIRST (Big Wins) ---
       if (a === b && b === c){
         if (a === "♠️") return { mult: PAY.JACKPOT_ACES, kind: "JACKPOT_ACES" };
         if (a === "7️⃣") return { mult: PAY.TRIPLE_7, kind: "TRIPLE_7" };
-        if (a === "🚬") return { mult: 12, kind: "TRIPLE_CIGS" };
+        if (a === "🚬") return { mult: 12, kind: "TRIPLE_CIGS" }; // Special high pay for cigs
 
-        // optional specials
+        // Specials
         if (a === "🎱") return { mult: PAY.TRIPLE_8BALL, kind: "TRIPLE_8BALL" };
         if (a === "🍺") return { mult: PAY.TRIPLE_BEER, kind: "TRIPLE_BEER" };
-        if (a === "🥾") return { mult: PAY.TRIPLE_BOOT, kind: "TRIPLE_BOOT" };
-        if (a === "♥️" || a === "♦️" || a === "♣️") return { mult: PAY.TRIPLE_SUIT, kind: "TRIPLE_SUIT" };
-
+        
+        // Everything else (Snakes, Bombs, etc)
         return { mult: PAY.TRIPLE_ANY, kind: "TRIPLE_ANY" };
       }
 
-      // doubles
+      // --- CHECK DOUBLES (Small Wins) ---
+      
+      // Count specific symbols in the result
       let c7 = 0, cA = 0;
+      let cBeer = 0, cWhiskey = 0, cCigs = 0;
+
       for (const s of syms){
         if (s === "7️⃣") c7++;
         if (s === "♠️") cA++;
+        if (s === "🍺") cBeer++;
+        if (s === "🥃") cWhiskey++;
+        if (s === "🚬") cCigs++;
       }
 
+      // High Tier Doubles (Existing)
       if (c7 === 2) return { mult: PAY.DOUBLE_7, kind: "DOUBLE_7" };
       if (cA === 2) return { mult: PAY.DOUBLE_ACES, kind: "DOUBLE_ACES" };
+
+      // --- NEW: VICE DOUBLES ---
+      // Pays x2 (Double your money). Keeps the player alive.
+      if (cBeer === 2)    return { mult: 2, kind: "DOUBLE_VICE" };
+      if (cWhiskey === 2) return { mult: 2, kind: "DOUBLE_VICE" };
+      if (cCigs === 2)    return { mult: 2, kind: "DOUBLE_VICE" };
 
       return { mult: 0, kind: null };
     }
@@ -4070,6 +4080,7 @@ function checkWin(r, cost) {
         setTimeout(() => playTone(988, "square", 0.16, 0.10), 120);
         kickSpeakers();
       }
+      
       // -- ANY OTHER TRIPLE (Skulls, Guitars, Dice, Whiskey) --
       // else if (kind === "TRIPLE_ANY") {
       else if (kind.startsWith("TRIPLE_")) {
@@ -4085,6 +4096,28 @@ function checkWin(r, cost) {
         playWinSound(false);
         kickSpeakers();
       }
+
+      // -- NEW: VICE DOUBLES (Beer, Whiskey, Cigs) --
+      else if (kind === "DOUBLE_VICE") {
+        // Find which symbol won
+        const counts = {};
+        let winner = "VICE";
+        bestAs.forEach(s => { counts[s] = (counts[s]||0)+1; if(counts[s]===2) winner = s; });
+        
+        const name = getSymbolName(winner);
+        
+        // Custom message logic
+        let msg = `2x ${name} - KEEP GOING`;
+        if(winner === "🍺" || winner === "🥃") msg = `2x ${name} - ROUND'S ON ME`;
+        if(winner === "🚬") msg = `2x ${name} - SMOKE 'EM`;
+
+        setMessage(`${msg} (+${win})`, "#ccc"); // Grey text, not gold
+        
+        // Fast, small effect
+        triggerSmallWinEffect(450); 
+        playTone(554, "square", 0.08, 0.08); 
+      }      
+
       // 5. Finalize UI
       updateUI();
       
@@ -4172,23 +4205,25 @@ function checkWin(r, cost) {
     }
 
     function getSymbolName(symbol) {
-      if (symbol === '♥️') return "HEARTS";            
-      if (symbol === '♦️') return "DIAMONDS";            
-      if (symbol === '♣️') return "CLUBS";            
-      if (symbol === '♠️') return "SPADES";
-      if (symbol === '🍺') return "BEERS";
-      if (symbol === '💣') return "BOMBS";      
-      if (symbol === '🎱') return "8-BALLS";
-      if (symbol === '🐍') return "SNAKES";      
-      if (symbol === '🔪') return "KNIVES";
-      if (symbol === '💀') return "SKULLS";
-      if (symbol === '🎸') return "GUITARS";
-      if (symbol === '🥃') return "WHISKEY";
-      if (symbol === '🎲') return "DICE";
-      if (symbol === '🚬') return "CIGS";
-      if (symbol === '7️⃣') return "SEVENS";
-      return "MATCH";
-    }
+          if (symbol === '♥️') return "HEARTS";            
+          if (symbol === '♦️') return "DIAMONDS";            
+          if (symbol === '♣️') return "CLUBS";            
+          if (symbol === '♠️') return "SPADES";
+          if (symbol === '🍺') return "BEERS";
+          if (symbol === '⚡') return "VOLTAGE";
+          if (symbol === '💣') return "BOMBS";      
+          if (symbol === '🎱') return "8-BALLS";
+          if (symbol === '🐍') return "SNAKES";      
+          if (symbol === '🔪') return "KNIVES";
+          if (symbol === '💀') return "SKULLS";
+          if (symbol === '🎸') return "GUITARS";
+          if (symbol === '🥃') return "WHISKEY";
+          if (symbol === '🎲') return "DICE";
+          if (symbol === '🚬') return "CIGS";
+          if (symbol === '7️⃣') return "SEVENS";
+          if (symbol === '🃏') return "JOKER";
+          return "MATCH";
+        }
 
     // Wire controls
     els.betUp.addEventListener('click', () => adjustBet(+1));
