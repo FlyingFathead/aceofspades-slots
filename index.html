@@ -2232,7 +2232,7 @@
           <tr>
             <td><span class="cond">2×♠️</span><span class="pay" id="pay-2aces">x2</span></td>
             <td><span class="cond">2×7️⃣</span><span class="pay" id="pay-27">x3</span></td>
-            <!-- UPDATED CELL BELOW -->
+            <!-- UPDATED CELL BELOW -->            
             <td><span class="cond">2×🍺🥃🚬</span><span class="pay">x2</span></td>
           </tr>
         </tbody>
@@ -2469,19 +2469,18 @@
       if (a === b && b === c){
         if (a === "♠️") return { mult: PAY.JACKPOT_ACES, kind: "JACKPOT_ACES" };
         if (a === "7️⃣") return { mult: PAY.TRIPLE_7, kind: "TRIPLE_7" };
-        if (a === "🚬") return { mult: 12, kind: "TRIPLE_CIGS" }; // Special high pay for cigs
+        if (a === "🚬") return { mult: 12, kind: "TRIPLE_CIGS" }; 
 
         // Specials
         if (a === "🎱") return { mult: PAY.TRIPLE_8BALL, kind: "TRIPLE_8BALL" };
         if (a === "🍺") return { mult: PAY.TRIPLE_BEER, kind: "TRIPLE_BEER" };
+        if (a === "🥾") return { mult: PAY.TRIPLE_BOOT, kind: "TRIPLE_BOOT" };
         
-        // Everything else (Snakes, Bombs, etc)
+        // Everything else 
         return { mult: PAY.TRIPLE_ANY, kind: "TRIPLE_ANY" };
       }
 
-      // --- CHECK DOUBLES (Small Wins) ---
-      
-      // Count specific symbols in the result
+      // --- CHECK DOUBLES ---
       let c7 = 0, cA = 0;
       let cBeer = 0, cWhiskey = 0, cCigs = 0;
 
@@ -2493,12 +2492,18 @@
         if (s === "🚬") cCigs++;
       }
 
-      // High Tier Doubles (Existing)
+      // High Tier Doubles (Profit)
       if (c7 === 2) return { mult: PAY.DOUBLE_7, kind: "DOUBLE_7" };
       if (cA === 2) return { mult: PAY.DOUBLE_ACES, kind: "DOUBLE_ACES" };
 
-      // --- NEW: VICE DOUBLES ---
-      // Pays x2 (Double your money). Keeps the player alive.
+      // --- VICE DOUBLES (Break Even / Push) ---
+      // // Changed from 2 to 1. 
+      // if (cBeer === 2)    return { mult: 1, kind: "DOUBLE_VICE" };
+      // if (cWhiskey === 2) return { mult: 1, kind: "DOUBLE_VICE" };
+      // if (cCigs === 2)    return { mult: 1, kind: "DOUBLE_VICE" };
+
+      // --- VICE DOUBLES ---
+      // Reverted to x2 (Profit) because we will block locking
       if (cBeer === 2)    return { mult: 2, kind: "DOUBLE_VICE" };
       if (cWhiskey === 2) return { mult: 2, kind: "DOUBLE_VICE" };
       if (cCigs === 2)    return { mult: 2, kind: "DOUBLE_VICE" };
@@ -3947,7 +3952,13 @@
         }
 
         hasSpun = true;
-        lockCooldown = (usedLocks || tripleWinThisSpin);
+        
+        // old logic
+        // lockCooldown = (usedLocks || tripleWinThisSpin);
+
+        // Force cooldown on ANY win. 
+        // If outcome is "WIN", you cannot lock next turn.
+        lockCooldown = (usedLocks || outcome === "WIN");        
 
         // Clear "held" visuals
         spinHeld = [false, false, false];
@@ -4099,24 +4110,69 @@ function checkWin(r, cost) {
 
       // -- NEW: VICE DOUBLES (Beer, Whiskey, Cigs) --
       else if (kind === "DOUBLE_VICE") {
-        // Find which symbol won
         const counts = {};
         let winner = "VICE";
         bestAs.forEach(s => { counts[s] = (counts[s]||0)+1; if(counts[s]===2) winner = s; });
         
         const name = getSymbolName(winner);
         
-        // Custom message logic
-        let msg = `2x ${name} - KEEP GOING`;
-        if(winner === "🍺" || winner === "🥃") msg = `2x ${name} - ROUND'S ON ME`;
+        // Back to positive messages
+        let msg = `2x ${name} - KEEP DRINKING`;
+        if(winner === "🍺") msg = `2x ${name} - CHEERS!`;
+        if(winner === "🥃") msg = `2x ${name} - POUR ANOTHER`;
         if(winner === "🚬") msg = `2x ${name} - SMOKE 'EM`;
 
-        setMessage(`${msg} (+${win})`, "#ccc"); // Grey text, not gold
+        // Use standard text color (or maybe a dull gold?)
+        setMessage(`${msg} (+${win})`, "#ccc"); 
         
-        // Fast, small effect
         triggerSmallWinEffect(450); 
         playTone(554, "square", 0.08, 0.08); 
-      }      
+      }
+
+      // // -- NEW: VICE DOUBLES (Beer, Whiskey, Cigs) --
+      // else if (kind === "DOUBLE_VICE") {
+      //   const counts = {};
+      //   let winner = "VICE";
+      //   bestAs.forEach(s => { counts[s] = (counts[s]||0)+1; if(counts[s]===2) winner = s; });
+        
+      //   const name = getSymbolName(winner);
+        
+      //   // Messages for x1 "Break Even"
+      //   let msg = `2x ${name} - MONEY BACK`; 
+        
+      //   if(winner === "🍺") msg = `2x ${name} - FREE REFILL`;
+      //   if(winner === "🥃") msg = `2x ${name} - ON THE HOUSE`;
+      //   if(winner === "🚬") msg = `2x ${name} - FREE SMOKES`;
+
+      //   // Use slightly dimmer text color (#aaa) since it's just x1
+      //   setMessage(`${msg} (+${win})`, "#aaa"); 
+        
+      //   // Very short, quick blip. Don't over-celebrate a push.
+      //   triggerSmallWinEffect(350); 
+      //   playTone(440, "square", 0.08, 0.08); 
+      // }
+
+      // // -- NEW: VICE DOUBLES (Beer, Whiskey, Cigs) --
+      // else if (kind === "DOUBLE_VICE") {
+      //   // Find which symbol won
+      //   const counts = {};
+      //   let winner = "VICE";
+      //   bestAs.forEach(s => { counts[s] = (counts[s]||0)+1; if(counts[s]===2) winner = s; });
+        
+      //   const name = getSymbolName(winner);
+        
+      //   // Custom message logic
+      //   let msg = `2x ${name} - KEEP GOING`;
+      //   if(winner === "🍺" || winner === "🥃") msg = `2x ${name} - ROUND'S ON ME`;
+      //   // if(winner === "🥃") msg = `2x ${name} - ROUND'S ON ME`;        
+      //   if(winner === "🚬") msg = `2x ${name} - SMOKE 'EM`;
+
+      //   setMessage(`${msg} (+${win})`, "#ccc"); // Grey text, not gold
+        
+      //   // Fast, small effect
+      //   triggerSmallWinEffect(450); 
+      //   playTone(554, "square", 0.08, 0.08); 
+      // }      
 
       // 5. Finalize UI
       updateUI();
